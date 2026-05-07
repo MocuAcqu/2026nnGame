@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>甦醒吧勇者!</title>
 
+    <link rel="icon" type="image/png" href="favicon.png">
+
     <link rel="stylesheet" href="css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,6 +14,17 @@
 </head>
 <body>
 
+    <div id="loading-screen" class="loading-overlay">
+        <div class="loading-content">
+            <div class="sheep-loader">◐ω◑</div>
+            <h2 id="loading-text">喚醒世界中... 0%</h2>
+            <div class="loading-bar-container">
+                <div id="loading-progress-bar"></div>
+            </div>
+            <p id="loading-detail" class="loading-detail">正在連接時間齒輪...</p>
+        </div>
+    </div>
+    
     <div id="start-overlay" class="overlay">
         <div class="overlay-content">
             <div class="overlay-text">點 擊 任 意 鍵 開 始 遊 戲</div>

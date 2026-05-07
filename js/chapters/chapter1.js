@@ -101,6 +101,7 @@ scenes[3].enemies = [
 
 const bgImages = {};
 
+/*
 function preloadAssets() {
     const promises = scenes.map(scene => {
         return new Promise((resolve, reject) => {
@@ -118,6 +119,7 @@ function preloadAssets() {
     });
     return Promise.all(promises);
 }
+*/
 
 function playSFX(name) {
     sfx[name].currentTime = 0;
@@ -406,7 +408,12 @@ export const Chapter1 = {
         canvas = document.getElementById('game-canvas');
         ctx = canvas.getContext('2d');
 
-        await preloadAssets();
+        //await preloadAssets();
+        scenes.forEach(scene => {
+            const img = new Image();
+            img.src = scene.bgPath;
+            bgImages[scene.bgPath] = img;
+        });
         console.log("所有場景資源載入完成！");
 
         initParticles();
