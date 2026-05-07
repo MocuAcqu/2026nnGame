@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>甦醒吧勇者!</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div id="start-overlay" class="overlay">
+        <div class="overlay-content">
+            <div class="overlay-text">點 擊 任 意 鍵 開 始 遊 戲</div>
+            <div class="overlay-hint">🎧 請配戴耳機，享受最佳體驗</div>
+        </div>
+    </div>
+
+    <div id="game-container">
+        
+        <section id="main-menu">
+            <div class="menu-bg"></div>
+
+            <div class="menu-content">
+                <div class="chapter-tag">IS TIME TO WAKE UP</div>
+                <h1 class="main-title">甦醒吧勇者!</h1>
+                <p class="description">
+                    時間的齒輪停止轉動。<br>
+                    為了找回失去的時間，<br>
+                    勇者必須甦醒。
+                </p>
+
+                <div class="menu-buttons">
+                    <button id="btn-start" class="menu-btn primary">開始冒險 (NEW GAME)</button>
+                    <button id="btn-load" class="menu-btn secondary" style="display:none;">繼續旅程 (CONTINUE)</button>
+                    <button id="btn-collection" class="menu-btn secondary" style="display:none;">回憶收藏 (COLLECTION)</button>
+                    <button id="btn-delete-save" class="menu-btn text-only" style="display:none; color: #ff6b6b;">刪除進度 (RESET DATA)</button>
+                    <button id="btn-credits" class="menu-btn text-only">製作名單</button>
+                </div>
+            </div>
+
+        </section>
+
+        <div id="confirm-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2>確定要重新開始嗎？</h2>
+                <p>這將會覆蓋原本的冒險進度，<br>且一切將無法回頭。</p>
+                <div class="modal-actions">
+                    <button id="btn-confirm-yes" class="menu-btn primary small">確定重來</button>
+                    <button id="btn-confirm-no" class="menu-btn secondary small">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="credits-modal" class="modal hidden">
+            <div class="modal-content credits-box">
+                <h2 class="credits-title">製作團隊</h2>
+                <div class="credits-list">
+                    腳本設計 | 莫丘<br>
+                    美術設計 | 莫丘<br>
+                    腳色配音 | 莫丘<br>
+                    影音效果 | 莫丘<br>
+                    程式設計 | 莫丘<br>
+                    遊戲測試 | 莫丘<br>
+                    網頁部署 | 莫丘<br>
+                    生圖大師 | ChatGPT<br>
+                    音樂大師 | Suno<br>
+                    免費音效 | pixabay<br>
+                    圖片提供 | Minecraft Wiki<br><br>
+                </div>
+                <button id="btn-credits-close" class="menu-btn secondary small" style="margin-top: 20px;">關閉</button>
+            </div>
+        </div>
+
+        <div id="collection-modal" class="modal hidden">
+            <div class="modal-content collection-box">
+                <h2 class="collection-title">旅程的樂章 (Soundtrack)</h2>
+                
+                <div class="music-player-container">
+                    <!-- 左側：專輯封面與資訊 -->
+                    <div class="album-art-section">
+                        <img src="assets/images/cover.png" id="album-cover" class="album-cover-img">
+                        <div id="current-track-info">
+                            <h3 id="track-title">選擇一首回憶...</h3>
+                            <p id="track-artist">作曲家: 莫丘</p>
+                        </div>
+                    </div>
+
+                    <!-- 右側：歌曲列表 -->
+                    <div class="tracklist-section">
+                        <ul id="track-list">
+                            <!-- JS 會在這裡動態生成歌曲 -->
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 播放器控制列 -->
+                <div class="player-controls">
+                    <button id="btn-prev-track">⏮</button>
+                    <button id="btn-play-pause">▶</button>
+                    <button id="btn-next-track">⏭</button>
+                    <div class="progress-container">
+                        <div id="music-progress-bar"></div>
+                    </div>
+                </div>
+
+                <button id="btn-close-collection" class="menu-btn secondary small close-collection-btn">返回主選單</button>
+            </div>
+        </div>
+
+        <section id="prologue-screen" class="hidden">
+            <div id="typing-container"></div>
+            <video id="intro-video" style="display:none;" playsinline>
+                <source src="assets/video/nnGame_序幕.mp4" type="video/mp4">
+                您的瀏覽器不支援影片播放。
+            </video>
+            <button id="btn-skip-video" class="skip-btn" style="display:none;">SKIP >></button>
+        </section>
+
+        <div id="chapter-title-screen" class="hidden">
+            <div class="title-content">
+                <div id="chapter-number">Chapter 1</div>
+                <div id="chapter-name">挖掘世界的真相</div>
+            </div>
+        </div>
+
+        <section id="chapter1-screen" class="hidden">
+
+            <div id="crafting-overlay" class="crafting-overlay hidden">
+                <h2>工作台 - 合成</h2>
+                <div class="crafting-container">
+                    <div class="grid-3x3">
+                        <div class="grid-slot" data-slot="0"></div>
+                        <div class="grid-slot" data-slot="1"></div>
+                        <div class="grid-slot" data-slot="2"></div>
+                        <div class="grid-slot" data-slot="3"></div>
+                        <div class="grid-slot" data-slot="4"></div>
+                        <div class="grid-slot" data-slot="5"></div>
+                        <div class="grid-slot" data-slot="6"></div>
+                        <div class="grid-slot" data-slot="7"></div>
+                        <div class="grid-slot" data-slot="8"></div>
+                    </div>
+                    <div class="arrow">➡</div>
+                    <div class="result-container">
+                        <div id="result-slot" class="grid-slot"></div>
+                        <button id="btn-craft-action" class="menu-btn primary small">合成</button>
+                    </div>
+                </div>
+                <div class="inventory-preview">
+                    <h3>你的背包 (點擊放入)</h3>
+                    <div id="crafting-inv-list"></div>
+                </div>
+                <button id="btn-close-crafting" class="menu-btn secondary small">離開</button>
+            </div>
+
+            <div id="ui-top-bar" class="glass-panel">
+                <div class="stats-box">
+                    <span class="stat-item"><span class="icon-hp"></span> HP: <span id="val-hp">100</span></span>
+                    <span class="stat-item"><span class="icon-hunger"></span> 飢餓度: <span id="val-hunger">100</span></span>
+                </div>
+                <div class="inventory-box">
+                    <span class="inv-item">木頭 <span id="val-wood" class="val">0</span></span>
+                    <span class="inv-item">石頭 <span id="val-stone" class="val">0</span></span>
+                    <span class="inv-item">綠寶石 <span id="val-emerald" class="val">0</span></span>
+                    <span class="inv-item">食物 <span id="val-food" class="val">0</span></span>
+                </div>
+            </div>
+
+            <!-- 綿羊使者按鈕 -->
+            <div id="btn-sheep-help" class="glass-btn" title="呼叫綿羊使者">
+                <div class="icon-sheep-small"></div>
+            </div>
+
+            <div class="space"></div>
+            
+            <!-- 遊戲主畫布 -->
+            <div class="canvas-wrapper">
+                <div id="interaction-hint" class="hidden"></div>
+                <canvas id="game-canvas" width="800" height="450"></canvas>
+
+                <div id="mining-progress-container" class="hidden">
+                    <div id="mining-progress-bar"></div>
+                </div>                
+            </div>
+
+            <div id="main-inventory-bar" class="inventory-bar glass-panel">
+                <div class="inv-slot" data-item="wood"><img src="assets/images/icon_wood.png"><span>0</span></div>
+                <div class="inv-slot" data-item="stone"><img src="assets/images/icon_stone.png"><span>0</span></div>
+                <div class="inv-slot" data-item="emerald"><img src="assets/images/icon_emerald.png"><span>0</span></div>
+                <div class="inv-slot" data-item="plank"><img src="assets/images/icon_plank.png"><span>0</span></div>
+                <div class="inv-slot" data-item="stick"><img src="assets/images/icon_stick.png"><span>0</span></div>
+                <div class="inv-slot" data-item="key"><img src="assets/images/icon_key.png"><span>0</span></div>
+                <!-- 工具與武器 -->
+                <div class="inv-slot" data-item="wood_pickaxe"><img src="assets/images/icon_wood_pickaxe.png"><span>0</span></div>
+                <div class="inv-slot" data-item="stone_pickaxe"><img src="assets/images/icon_stone_pickaxe.png"><span>0</span></div>
+                <div class="inv-slot" data-item="wood_sword"><img src="assets/images/icon_wood_sword.png"><span>0</span></div>
+                <div class="inv-slot" data-item="stone_sword"><img src="assets/images/icon_stone_sword.png"><span>0</span></div>
+            </div>
+
+        </section>
+
+        <div id="transition-white" class="white-overlay hidden"></div>
+
+        <section id="staircase-screen" class="hidden">
+            <div id="skill-detail-modal" class="modal hidden">
+                <div class="modal-content card-detail-view">
+                    <div id="detail-card-container">
+                        <!-- 顯示完整的卡牌內容 -->
+                    </div>
+                    <div class="detail-actions">
+                        <button id="btn-close-detail" class="skill-action-btn secondary">關閉查看</button>
+                        <button id="btn-delete-skill" class="skill-action-btn danger">捨棄此特質</button>
+                    </div>
+                </div>
+            </div>
+            <!-- 背景照片層 -->
+            <div class="staircase-photo-bg"></div>
+            <div class="vignette-overlay"></div> <!-- 邊緣暗角 -->
+
+            <div class="staircase-content">
+                <header class="staircase-header">
+                    <span id="floor-indicator">FLOOR 01</span>
+                    <div class="progress-bar-container">
+                        <div id="staircase-progress"></div>
+                    </div>
+                </header>
+
+                <main class="card-focus-area">
+                    <div id="current-card-offer">
+                        <!-- 動態注入精美卡牌 -->
+                    </div>
+                </main>
+
+                <footer class="staircase-footer">
+                    <div class="action-buttons">
+                        <button id="btn-keep-skill" class="skill-action-btn primary">保留特質</button>
+                        <button id="btn-discard-skill" class="skill-action-btn secondary">捨棄，繼續前進</button>
+                    </div>
+                    
+                    <div id="skill-inventory-section">
+                        <p>已喚醒的特質 (至多五項)</p>
+                        <div id="skill-slots-container">
+                            <!-- 五個空位 -->
+                        </div>
+                    </div>
+                </footer>
+            </div>
+        </section>
+
+        <section id="chapter2-screen" class="hidden">
+            <!-- 背景裝飾 -->
+            <div class="magic-room-overlay"></div>
+
+            <!-- 導覽按鈕 (固定在畫面兩側) -->
+            <button id="btn-prev-room" class="nav-btn side-left"><span>◀</span></button>
+            <button id="btn-next-room" class="nav-btn side-right"><span>▶</span></button>
+
+            <!-- 0. 主場景：雙門與守衛 -->
+            <div id="scene-main" class="puzzle-scene main-myth-bg">
+                <!-- 1. 開啟密碼視窗的按鈕 (建議放在下方中央) -->
+                <div id="btn-open-question-build" class="magic-scroll-btn">
+                    進行提問
+                </div>
+
+                <!-- 鵝守衛與對話框 (保持原樣，但對話框預設清空) -->
+                <div class="guardians-wrapper">
+                    <div class="guardian-goose" id="guardian-a">
+                        <img src="assets/images/goose_guard.png" class="goose-img">
+                        <div class="speech-bubble">...</div>
+                    </div>
+                    <div class="guardian-goose" id="guardian-b">
+                        <img src="assets/images/goose_guard.png" class="goose-img mirror-flip">
+                        <div class="speech-bubble">...</div>
+                    </div>
+                </div>
+
+                <div class="main-doors-hotspots">
+                    <div class="magic-gate-box" id="gate-left" data-side="左邊">
+                        <div class="door-label">LEFT</div>
+                    </div>
+                    <div class="magic-gate-box" id="gate-right" data-side="右邊">
+                        <div class="door-label">RIGHT</div>
+                    </div>
+                </div>
+
+                <!-- 3. 輸入密碼的彈窗 (預設隱藏) -->
+                <div id="question-modal" class="modal hidden">
+                    <div class="modal-content glass-panel question-builder">
+                        <h3>請輸入觀察到的密碼，拼湊出問句</h3>
+                        <div class="code-inputs">
+                            <input type="text" id="code-1" maxlength="1" placeholder="?">
+                            <input type="text" id="code-2" maxlength="1" placeholder="?">
+                            <input type="text" id="code-3" maxlength="1" placeholder="?">
+                            <input type="text" id="code-4" maxlength="1" placeholder="?">
+                        </div>
+                        <div id="assembled-question">尚未拼湊完整問句...</div>
+                        <div class="modal-actions">
+                            <button id="btn-ask-guards" class="ask-btn">送出詢問</button>
+                            <button id="btn-close-modal" class="ask-btn" style="background-color: aliceblue;">關閉</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. 確認選擇的彈窗 -->
+            <div id="confirm-door-modal" class="modal hidden">
+                <div class="modal-content glass-panel">
+                    <h2 id="confirm-door-text">確定要進入這扇門嗎？</h2>
+                    <p>一但進入，便無法復返。</p>
+                    <div class="modal-actions">
+                        <button id="btn-door-yes" class="menu-btn primary small">確定</button>
+                        <button id="btn-door-no" class="menu-btn secondary small">再想想</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1. 撲克牌牆場景 -->
+            <div id="scene-poker" class="puzzle-scene poker-room-bg hidden">
+                <div id="floating-cards-area">
+                    <!-- 12 張牌將由 JS 生成 -->
+                </div>
+            </div>
+
+            <!-- 2. 鏡子房間場景 -->
+            <div id="scene-mirror" class="puzzle-scene mirror-room-bg hidden">
+                <!-- 鏡子容器：包含外框與動態鏡面 -->
+                <div class="magic-mirror-container">
+                    <!-- 鏡中世界：我們用 CSS 把背景圖再畫一次，但設定位移 -->
+                    <div id="mirror-reflection" class="mirror-inner">
+                        <div id="mirror-clue" class="mirror-secret-text">「哪一扇是正確的門，」= 0</div>
+                    </div>
+                    <!-- 裝飾外框 (可選，如果你想疊加一個更亮的金邊) -->
+                    <div class="mirror-frame-overlay"></div>
+                </div>
+
+                <!-- 調整視角的精美滑桿 -->
+                <div class="mirror-controls glass-panel">
+                    <label style="color: rgb(65, 65, 65);">✧ 尋找真理的角度 ✧</label>
+                    <input type="range" id="mirror-slider" min="0" max="100" value="0" class="gold-slider">
+                </div>
+            </div>
+
+            <!-- 3. 旋轉房間場景 -->
+            <div id="scene-rotating" class="puzzle-scene rotate-room-bg hidden">
+                <!-- 旋轉容器 -->
+                <div id="rotating-wrapper">
+                    <!-- 物理球畫布 (透明，蓋在背景圖上) -->
+                    <canvas id="physics-ball-canvas" width="500" height="500"></canvas>
+                </div>
+
+                <!-- 飄落的紙條 (放在 wrapper 外) -->
+                <div id="floating-paper" class="secret-paper hidden">
+                    <div class="paper-content">「他會指向哪一扇門」= 2</div>
+                </div>
+
+                <button id="btn-rotate-room" class="rotate-ctrl">↻ 旋轉重力，碰到方框</button>
+            </div>
+
+            <!-- 4. 水晶球房間場景 -->
+            <div id="scene-oracle" class="puzzle-scene oracle-room-bg hidden">
+                <!-- 透明的點擊區域，對準圖片中的水晶球位置 -->
+                <div id="crystal-ball-hotspot" class="orb-hotspot"></div>
+
+                <!-- 星辰對話視窗 (預設隱藏) -->
+                <div id="oracle-overlay" class="celestial-overlay hidden">
+                    <div class="stars-background"></div> <!-- 用於背景的小星星動畫 -->
+                    <div class="celestial-content">
+                        <p id="oracle-text-display">點擊水晶球以窺視未來...</p>
+                        <div class="celestial-hint">✦ 點擊球體重新占卜 ✦</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="hat-minigame-screen" class="hidden">
+            <!-- 1. 背景裝飾：營造表演舞台感 -->
+            <div class="stage-floor"></div>
+            <div class="stage-spotlight"></div>
+
+            <div class="minigame-ui">
+                <h2 id="hat-status-text">仔細看好...鑰匙在哪頂帽子裡？</h2>
+                
+                <!-- 2. 三頂魔術帽 (請替換為你的圖片路徑) -->
+                <div id="hats-stage">
+                    <div class="hat-wrapper" data-idx="0">
+                        <img src="assets/images/magic_hat.png" class="hat-img">
+                        <div class="item-under-hat hidden">🔑</div>
+                    </div>
+                    <div class="hat-wrapper" data-idx="1">
+                        <img src="assets/images/magic_hat.png" class="hat-img">
+                        <div class="item-under-hat hidden">🔑</div>
+                    </div>
+                    <div class="hat-wrapper" data-idx="2">
+                        <img src="assets/images/magic_hat.png" class="hat-img">
+                        <div class="item-under-hat hidden">🔑</div>
+                    </div>
+                </div>
+
+                <button id="btn-start-shuffle" class="magic-btn">開始表演 (SHUFFLE)</button>
+            </div>
+
+            <!-- 3. 用於閃爍轉場的黑色遮罩 -->
+            <div id="flash-overlay" class="flash-overlay"></div>
+        </section>
+
+        <section id="illusion-gates-screen" class="hidden">
+            <!-- 背景層 -->
+            <div class="illusion-global-bg"></div>
+            
+            <!-- 12 門的頂部資訊 -->
+            <div class="illusion-header">
+                <div id="gate-level-indicator">LEVEL 01 / 12</div>
+                <div class="timer-wrapper">
+                    <div id="illusion-timer-bar"></div>
+                </div>
+            </div>
+
+            <!-- 密碼閃現 -->
+            <div id="code-flash-display" class="hidden"></div>
+
+            <!-- 門的視窗 -->
+            <div class="doors-viewport">
+                <div id="doors-slider">
+                    <div class="illusion-door" data-door="0"></div>
+                    <div class="illusion-door" data-door="1"></div>
+                    <div class="illusion-door" data-door="2"></div>
+                </div>
+            </div>
+
+            <!-- 2. 螢幕兩側的導覽按鈕 -->
+            <button id="btn-door-left" class="side-nav-btn left">◀</button>
+            <button id="btn-door-right" class="side-nav-btn right">▶</button>
+
+            <!-- 數字輸入鍵盤 (點擊門後彈出) -->
+            <div id="illusion-keypad" class="hidden">
+                <div class="keypad-grid">
+                    <button class="num-key">1</button><button class="num-key">2</button><button class="num-key">3</button>
+                    <button class="num-key">4</button><button class="num-key">5</button><button class="num-key">6</button>
+                    <button class="num-key">7</button><button class="num-key">8</button><button class="num-key">9</button>
+                    <button class="num-key">0</button>
+                    <button id="btn-clear-keypad">C</button>
+                </div>
+                <div id="keypad-display">____</div>
+            </div>
+        </section>
+
+        <section id="final-gate-screen" class="hidden">
+            <div class="final-gate-bg"></div>
+            
+            <!-- 最終之門 -->
+            <div id="the-ultimate-door" class="the-door-interactive">
+                <div class="door-handle"></div>
+            </div>
+
+            <!-- 26 歲勇者 (初次出現帶馬賽克) -->
+            <div id="boss-container" class="hidden">
+                <div id="boss-sprite" class="mosaic-effect">
+                    <!-- 這裡放勇者的圖片，或是沿用精靈勇者的樣子但改色 -->
+                    <img src="assets/images/hero_26.png" id="boss-image">
+                </div>
+            </div>
+
+            <!-- 劇情選項容器 -->
+            <div id="dialogue-options" class="hidden"></div>
+        </section>
+
+        <!-- 最終決戰：回合制戰鬥介面 -->
+        <section id="battle-screen" class="hidden">
+            <div class="battle-bg"></div>
+
+            <!-- 1. 敵人 (Boss) 區域 -->
+            <div class="boss-zone">
+                <div class="status-panel boss-panel glass-panel">
+                    <div class="name-tag">LV.26 勇者</div>
+                    <div class="hp-bar-container">
+                        <div id="boss-hp-bar" class="hp-fill" style="width: 100%;"></div>
+                    </div>
+                    <div id="boss-hp-text">100 / 100</div>
+                </div>
+                <!-- 敵人形象 -->
+                <div id="boss-battle-sprite"></div>
+            </div>
+
+            <!-- 2. 玩家區域 (下方) -->
+            <div class="player-zone">
+                <div class="status-panel player-panel glass-panel">
+                    <div class="name-tag">勇者</div>
+                    <div class="hp-bar-container">
+                        <div id="player-hp-bar" class="hp-fill" style="width: 100%;"></div>
+                    </div>
+                    <div id="player-hp-text">100 / 100</div>
+                </div>
+            </div>
+
+            <!-- 1. 敵人立繪區 -->
+            <div class="boss-main-visual">
+                <img src="assets/images/hero_26.png" id="battle-boss-img" class="floating-boss">
+            </div>
+
+            <!-- 2. 改造成「魔導書」形式的技能背包 -->
+            <div id="battle-deck-overlay" class="modal hidden">
+                <div class="book-container">
+                    <div class="book-page left-page">
+                        <h3 class="book-title">喚醒你的特質</h3>
+                        <div id="deck-list-left" class="card-column"></div>
+                    </div>
+                    <div class="book-page right-page">
+                        <h3 class="book-title">展現你的技能吧</h3>
+                        <div id="deck-list-right" class="card-column"></div>
+                    </div>
+                    <button id="btn-close-deck" class="book-close-btn">✖</button>
+                </div>
+            </div>
+
+            <!-- 3. 控制面板與訊息框 -->
+            <div class="battle-ui-panel">
+                <div id="battle-message-box">準備好迎接最後的挑戰了嗎？</div>
+                <div class="battle-actions">
+                    <button id="btn-open-deck" class="battle-btn">使用技能</button>
+                    <button id="btn-draw-card" class="battle-btn">命運的勇氣</button>
+                </div>
+            </div>
+
+            <!-- 4. 戰鬥專用卡牌背包 (全螢幕 Modal) -->
+            <div id="battle-deck-overlay" class="modal hidden">
+                <div class="modal-content deck-view">
+                    <h2>選擇要釋放的力量</h2>
+                    <div id="battle-deck-list" class="deck-grid">
+                        <!-- 卡牌會動態生成 -->
+                    </div>
+                    <button id="btn-close-deck" class="menu-btn secondary small">取消</button>
+                </div>
+            </div>
+
+            <!-- 5. 遊戲規則說明彈窗 -->
+            <div id="battle-rules-modal" class="modal hidden">
+                <div class="modal-content glass-panel rules-box">
+                    <h2 style="color: #feca57; margin-bottom: 20px;">最終決戰規則</h2>
+                    <ul class="rules-list">
+                        <li>使用冒險過程獲得的技能卡牌進行攻擊。</li>
+                        <li>回合制對決，我方先攻。</li>
+                        <li>使用該技能後，技能會消失。</li>
+                        <li>每回合可選擇要攻擊或獲得新技能</li>
+                    </ul>
+                    <button id="btn-start-fight" class="menu-btn primary small" style="margin-top: 20px;">開始對決</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="victory-screen" class="hidden">
+            <div id="victory-final-bg"></div>
+            <div id="victory-hint" class="hidden">點擊畫面，請務必戴上耳機，推開這扇門...</div>
+        </section>
+
+        <!-- 結局語音播放遮罩 (全黑背景) -->
+        <div id="ending-credits-overlay" class="hidden" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; z-index: 5000; display: flex; justify-content: center; align-items: center; color: white; flex-direction: column;">
+            <h1 id="ending-text" style="opacity: 0; transition: opacity 2s;">結束了...?</h1>
+            <audio id="birthday-audio">
+                <source src="assets/audio/甦醒吧勇者_最終祝福.mp3" type="audio/mpeg">
+            </audio>
+        </div>
+
+        <!-- RPG 對話系統 (包含遮罩與立繪) -->
+        <div id="dialogue-overlay" class="hidden">
+            <div id="dialogue-portrait">
+                <img src="assets/images/sheep_messenger.png" alt="綿羊使者" id="sheep-messenger-img">
+            </div>
+            
+            <!-- 對話文字框 -->
+            <div id="dialogue-box">
+                <div id="dialogue-name">綿羊使者</div>
+                <div id="dialogue-text"></div>
+                <div id="dialogue-hint">▼ NEXT</div>
+            </div>
+            
+        </div>
+
+        <!-- 技能獲得獎勵彈窗 -->
+        <div id="reward-skill-modal" class="modal hidden">
+            <div class="modal-content reward-card-view">
+                <h2 class="reward-title">✦ 獲得新特質 ✦</h2>
+                <div id="reward-card-container">
+                    <!-- 這裡會動態注入卡牌內容 -->
+                </div>
+                <button id="btn-collect-reward" class="skill-action-btn primary" style="margin-top: 15px;">收下力量</button>
+            </div>
+        </div>
+
+        <div id="toast-container"></div>
+    </div>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
