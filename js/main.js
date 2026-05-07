@@ -26,66 +26,44 @@ async function preloadGlobalAssets() {
     const progressText = document.getElementById('loading-text');
     const detailText = document.getElementById('loading-detail');
 
-    // 我們決定在首頁先載入 CORE 和 Chapter 1 的資源
-    // 把想預先載入的陣列合併
-    const allImages = [...CORE_ASSETS.images, ...CHAPTER1_ASSETS.images, ...CHAPTER2_ASSETS.images, ...CHAPTER3_ASSETS.images];
-    const allAudio = [...CORE_ASSETS.audio, ...CHAPTER1_ASSETS.audio, ...CHAPTER2_ASSETS.audio, ...CHAPTER3_ASSETS.audio];
+    const allImages = [
+        ...CORE_ASSETS.images, 
+        ...CHAPTER1_ASSETS.images, 
+        ...CHAPTER2_ASSETS.images, 
+        ...CHAPTER3_ASSETS.images
+    ];
     
-    const totalAssets = allImages.length + allAudio.length;
+    const totalAssets = allImages.length;
     let loadedCount = 0;
 
-    // 更新進度條的輔助函式
     const updateProgress = (src) => {
         loadedCount++;
         const percent = Math.floor((loadedCount / totalAssets) * 100);
         progressBar.style.width = `${percent}%`;
         progressText.innerText = `喚醒世界中... ${percent}%`;
-        
-        // 只顯示檔名，不顯示長長的路徑
         const fileName = src.split('/').pop();
         detailText.innerText = `正在讀取: ${fileName}`;
     };
 
-    // 建立所有圖片的載入 Promise
     const imagePromises = allImages.map(src => {
         return new Promise((resolve) => {
             const img = new Image();
             img.src = src;
             img.onload = () => { updateProgress(src); resolve(); };
-            img.onerror = () => { console.warn(`圖片缺失: ${src}`); updateProgress(src); resolve(); };
+            img.onerror = () => { console.warn(`圖片缺失或載入失敗: ${src}`); updateProgress(src); resolve(); };
         });
     });
 
-    // 建立所有音訊的載入 Promise
-    // 注意：這裡只載入(load)，不播放(play)
-    const audioPromises = allAudio.map(src => {
-        return new Promise((resolve) => {
-            const audio = new Audio();
-            audio.src = src;
-            // canplaythrough 代表瀏覽器估計可以不卡頓地播完這首歌
-            audio.oncanplaythrough = () => { updateProgress(src); resolve(); };
-            audio.onerror = () => { console.warn(`音訊缺失: ${src}`); updateProgress(src); resolve(); };
-            
-            // 加入超時保護 (如果網路太慢，等 3 秒就不等了直接通過)
-            setTimeout(resolve, 3000); 
-            
-            audio.load(); // 強制觸發下載
-        });
-    });
+    // 等待所有圖片載入 (不再等音訊了)
+    await Promise.allSettled(imagePromises);
 
-    // ★ 等待所有 Promise 完成
-    await Promise.all([...imagePromises, ...audioPromises]);
-
-    console.log("✅ 核心資源載入完畢！");
+    console.log("✅ 核心圖片資源載入完畢！");
     
-    // 延遲一下讓玩家看見 100%
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise(r => setTimeout(r, 500));
 
-    // 隱藏載入畫面
     loadingScreen.style.opacity = 0;
     setTimeout(() => {
         loadingScreen.classList.add('hidden');
-        // 顯示「點擊任意鍵開始遊戲」的遮罩
         document.getElementById('start-overlay').classList.remove('hidden');
     }, 1000);
 }
