@@ -25,6 +25,9 @@ export const CORE_ASSETS = {
         'assets/audio/stairs_climb.mp3',
         'assets/audio/typing.mp3',
         'assets/audio/walk.mp3',
+    ],
+    video: [
+        'assets/video/nnGame_序幕.mp4' ,
     ]
 };
 

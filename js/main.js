@@ -26,14 +26,17 @@ async function preloadGlobalAssets() {
     const progressText = document.getElementById('loading-text');
     const detailText = document.getElementById('loading-detail');
 
-    const allImages = [
-        ...CORE_ASSETS.images, 
-        ...CHAPTER1_ASSETS.images, 
-        ...CHAPTER2_ASSETS.images, 
-        ...CHAPTER3_ASSETS.images
-    ];
+    const allImages = [...CORE_ASSETS.images, ...CHAPTER1_ASSETS.images, ...CHAPTER2_ASSETS.images, ...CHAPTER3_ASSETS.images];
+    const allAudio = [...CORE_ASSETS.audio, ...CHAPTER1_ASSETS.audio, ...CHAPTER2_ASSETS.audio, ...CHAPTER3_ASSETS.audio];
+    const allVideos = [...(CORE_ASSETS.video || [])]; // 加上影片
     
-    const totalAssets = allImages.length;
+    const allAssets = [
+        ...allImages.map(src => ({ src, type: 'image' })),
+        ...allAudio.map(src => ({ src, type: 'audio' })),
+        ...allVideos.map(src => ({ src, type: 'video' }))
+    ];
+
+    const totalAssets = allAssets.length;
     let loadedCount = 0;
 
     const updateProgress = (src) => {
@@ -41,25 +44,60 @@ async function preloadGlobalAssets() {
         const percent = Math.floor((loadedCount / totalAssets) * 100);
         progressBar.style.width = `${percent}%`;
         progressText.innerText = `喚醒世界中... ${percent}%`;
-        const fileName = src.split('/').pop();
-        detailText.innerText = `正在讀取: ${fileName}`;
+        detailText.innerText = `正在讀取: ${src.split('/').pop()}`;
     };
 
-    const imagePromises = allImages.map(src => {
+    const loadAsset = (asset) => {
         return new Promise((resolve) => {
-            const img = new Image();
-            img.src = src;
-            img.onload = () => { updateProgress(src); resolve(); };
-            img.onerror = () => { console.warn(`圖片缺失或載入失敗: ${src}`); updateProgress(src); resolve(); };
+            if (asset.type === 'image') {
+                const img = new Image();
+                img.src = asset.src;
+                img.onload = () => { updateProgress(asset.src); resolve(); };
+                img.onerror = () => { updateProgress(asset.src); resolve(); };
+            } 
+            else if (asset.type === 'audio') {
+                const audio = new Audio();
+                audio.src = asset.src;
+                // canplaythrough 代表已經載入足夠的緩衝可以順暢播放
+                audio.oncanplaythrough = () => { updateProgress(asset.src); resolve(); };
+                audio.onerror = () => { updateProgress(asset.src); resolve(); };
+                audio.load();
+                // 保險機制：如果網路卡住，5秒後強行通過，避免遊戲永遠卡在載入畫面
+                setTimeout(() => { resolve(); }, 5000); 
+            }
+            else if (asset.type === 'video') {
+                // 針對影片的預載入
+                const req = new XMLHttpRequest();
+                req.open('GET', asset.src, true);
+                req.responseType = 'blob';
+                req.onload = function() {
+                    if (this.status === 200) {
+                        // 將下載好的影片變成一個 Blob URL 塞給原本的 video 標籤
+                        const videoBlob = this.response;
+                        const vidURL = URL.createObjectURL(videoBlob);
+                        const videoEl = document.getElementById('intro-video');
+                        if (videoEl) videoEl.src = vidURL;
+                    }
+                    updateProgress(asset.src);
+                    resolve();
+                };
+                req.onerror = () => { updateProgress(asset.src); resolve(); };
+                req.send();
+                setTimeout(() => { resolve(); }, 10000);
+            }
         });
-    });
+    };
 
-    // 等待所有圖片載入 (不再等音訊了)
-    await Promise.allSettled(imagePromises);
-
-    console.log("✅ 核心圖片資源載入完畢！");
+    const MAX_CONCURRENT = 5; 
     
-    await new Promise(r => setTimeout(r, 500));
+    for (let i = 0; i < allAssets.length; i += MAX_CONCURRENT) {
+        const chunk = allAssets.slice(i, i + MAX_CONCURRENT);
+        await Promise.all(chunk.map(asset => loadAsset(asset)));
+    }
+
+    console.log("✅ 所有圖片、音樂、影片載入完畢！");
+    
+    await new Promise(r => setTimeout(r, 800));
 
     loadingScreen.style.opacity = 0;
     setTimeout(() => {
