@@ -107,16 +107,17 @@ async function preloadGlobalAssets() {
     setTimeout(() => {
         loadingScreen.classList.add('hidden');
         document.getElementById('start-overlay').classList.remove('hidden');
-    }, 1000);
+    }, 800);
 }
 
 let currentScene = 'menu';
 
 async function init() {
     console.log("🚀 遊戲系統啟動...");
-    document.getElementById('start-overlay').classList.add('hidden');
+    // document.getElementById('start-overlay').classList.add('hidden');
+    document.getElementById('loading-screen').classList.add('hidden');
 
-    await preloadGlobalAssets();
+    // await preloadGlobalAssets();
 
     updateButtonVisibility();
 
