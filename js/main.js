@@ -26,9 +26,27 @@ async function preloadGlobalAssets() {
     const progressText = document.getElementById('loading-text');
     const detailText = document.getElementById('loading-detail');
 
-    const allImages = [...CORE_ASSETS.images, ...CHAPTER1_ASSETS.images, ...CHAPTER2_ASSETS.images, ...CHAPTER3_ASSETS.images];
-    const allAudio = [...CORE_ASSETS.audio, ...CHAPTER1_ASSETS.audio, ...CHAPTER2_ASSETS.audio, ...CHAPTER3_ASSETS.audio];
-    const allVideos = [...(CORE_ASSETS.video || [])]; // 加上影片
+    // 1. 收集所有資源，並使用 Set() 來「自動去除重複的檔案」
+    const allImages = [...new Set([
+        ...(CORE_ASSETS.images || []), 
+        ...(CHAPTER1_ASSETS.images || []), 
+        ...(CHAPTER2_ASSETS.images || []), 
+        ...(CHAPTER3_ASSETS.images || [])
+    ])];
+    
+    const allAudio = [...new Set([
+        ...(CORE_ASSETS.audio || []), 
+        ...(CHAPTER1_ASSETS.audio || []), 
+        ...(CHAPTER2_ASSETS.audio || []), 
+        ...(CHAPTER3_ASSETS.audio || [])
+    ])];
+    
+    const allVideos = [...new Set([
+        ...(CORE_ASSETS.video || []), 
+        ...(CHAPTER1_ASSETS.video || []), 
+        ...(CHAPTER2_ASSETS.video || []), 
+        ...(CHAPTER3_ASSETS.video || [])
+    ])];
     
     const allAssets = [
         ...allImages.map(src => ({ src, type: 'image' })),
@@ -47,57 +65,43 @@ async function preloadGlobalAssets() {
         detailText.innerText = `正在讀取: ${src.split('/').pop()}`;
     };
 
+    // 2. 資源載入器 (極簡原生快取法)
     const loadAsset = (asset) => {
         return new Promise((resolve) => {
             if (asset.type === 'image') {
                 const img = new Image();
-                img.src = asset.src;
                 img.onload = () => { updateProgress(asset.src); resolve(); };
                 img.onerror = () => { updateProgress(asset.src); resolve(); };
+                img.src = asset.src;
             } 
             else if (asset.type === 'audio') {
                 const audio = new Audio();
-                audio.src = asset.src;
-                // canplaythrough 代表已經載入足夠的緩衝可以順暢播放
                 audio.oncanplaythrough = () => { updateProgress(asset.src); resolve(); };
                 audio.onerror = () => { updateProgress(asset.src); resolve(); };
+                audio.src = asset.src;
                 audio.load();
-                // 保險機制：如果網路卡住，5秒後強行通過，避免遊戲永遠卡在載入畫面
-                setTimeout(() => { resolve(); }, 5000); 
+                setTimeout(resolve, 4000); // 4秒超時保護
             }
             else if (asset.type === 'video') {
-                // 針對影片的預載入
-                const req = new XMLHttpRequest();
-                req.open('GET', asset.src, true);
-                req.responseType = 'blob';
-                req.onload = function() {
-                    if (this.status === 200) {
-                        // 將下載好的影片變成一個 Blob URL 塞給原本的 video 標籤
-                        const videoBlob = this.response;
-                        const vidURL = URL.createObjectURL(videoBlob);
-                        const videoEl = document.getElementById('intro-video');
-                        if (videoEl) videoEl.src = vidURL;
-                    }
-                    updateProgress(asset.src);
-                    resolve();
-                };
-                req.onerror = () => { updateProgress(asset.src); resolve(); };
-                req.send();
-                setTimeout(() => { resolve(); }, 10000);
+                // 利用隱形的 video 標籤強迫瀏覽器下載影片到快取中
+                const vid = document.createElement('video');
+                vid.preload = 'auto'; // 要求瀏覽器預先下載
+                vid.oncanplaythrough = () => { updateProgress(asset.src); resolve(); };
+                vid.onerror = () => { updateProgress(asset.src); resolve(); };
+                vid.src = asset.src;
+                vid.load();
+                setTimeout(resolve, 8000); // 影片較大，給 8 秒超時保護
             }
         });
     };
 
-    const MAX_CONCURRENT = 5; 
-    
-    for (let i = 0; i < allAssets.length; i += MAX_CONCURRENT) {
-        const chunk = allAssets.slice(i, i + MAX_CONCURRENT);
-        await Promise.all(chunk.map(asset => loadAsset(asset)));
-    }
+    // 3. 一次性平行發送所有請求 (移除分批機制)
+    // 使用 allSettled 確保即便某個檔案壞了，遊戲依然能啟動
+    await Promise.allSettled(allAssets.map(asset => loadAsset(asset)));
 
-    console.log("✅ 所有圖片、音樂、影片載入完畢！");
+    console.log(`✅ 載入完畢！共載入 ${totalAssets} 個不重複檔案。`);
     
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise(r => setTimeout(r, 500));
 
     loadingScreen.style.opacity = 0;
     setTimeout(() => {
@@ -203,8 +207,8 @@ async function startPrologue() {
         playerStats: { hp: 100, hunger: 100, maxHunger: 100 },
         inventory: { 
             wood: 0, stone: 0, emerald: 0, food: 0,
-            plank: 0, stick: 0, // 新增素材
-            wood_pickaxe: 0, stone_pickaxe: 0, // 新增工具
+            plank: 0, stick: 0, 
+            wood_pickaxe: 0, stone_pickaxe: 0, 
             wood_sword: 0, stone_sword: 0,
             tools: { axe: false, pickaxe: false }
         },
