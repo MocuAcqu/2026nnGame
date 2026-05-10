@@ -555,10 +555,8 @@ function enterDoor(isCorrect) {
     } else {
 
         startDialogue(["好笨，你被虛假所迷惑，墜入了帽子戲法！"], () => {
-            if (AudioManager.currentTrack !== 'assets/audio/HatTrick.mp3') {
-                AudioManager.stopBGM();
-                AudioManager.playBGM('assets/audio/HatTrick.mp3');
-            }
+            AudioManager.stopBGM();
+            AudioManager.playBGM('assets/audio/HatTrick.mp3');
             startHatMinigame();
         });
     }
@@ -701,16 +699,18 @@ async function handleHatClick(idx) {
         await new Promise(r => setTimeout(r, 400));
 
         hatScreen.classList.add('hidden');
-        mainScene.classList.remove('hidden');
         isReturningFromHatTrick = true;
         
         // 切換音樂回主旋律
         AudioManager.stopBGM();
-        AudioManager.playBGM('assets/audio/Velvet Curtain Alchemy.mp3');
 
         await new Promise(r => setTimeout(r, 400));
         flash.classList.remove('flash-anim');
 
+        AudioManager.playBGM('assets/audio/Velvet Curtain Alchemy.mp3');
+
+        await new Promise(r => setTimeout(r, 800));
+        mainScene.classList.remove('hidden');
         showRewardSkill(newSkill, () => {
             startDialogue([
                 "綿羊使者: 不錯嘛，竟然能從帽子戲法中帶回這份力量。",

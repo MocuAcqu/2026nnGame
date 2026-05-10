@@ -1,9 +1,10 @@
 import { getCachedUrl } from './assetsConfig.js';
 
 export const AudioManager = {
-    bgm: new Audio(),
+    bgm: new Audio(), // 建立一個音訊物件
     currentTrack: null,
 
+    // 播放背景音樂
     playBGM: (path) => {
         const cachedPath = getCachedUrl(path); 
         
@@ -12,24 +13,15 @@ export const AudioManager = {
         AudioManager.bgm.src = cachedPath;
         AudioManager.bgm.loop = true; 
         AudioManager.bgm.volume = 0.6; 
+        
+         AudioManager.bgm.play().catch(e => {
+            document.addEventListener('click', () => AudioManager.bgm.play(), { once: true });
+        });
         AudioManager.currentTrack = cachedPath;
-        
-        const playPromise = AudioManager.bgm.play();
-        
-        if (playPromise !== undefined) {
-            playPromise.catch(() => {
-                // ★ 用 capture phase 攔截，並且阻止冒泡
-                const resumeAudio = (e) => {
-                    e.stopPropagation();
-                    AudioManager.bgm.play().catch(() => {});
-                };
-                document.addEventListener('click', resumeAudio, { once: true, capture: true });
-            });
-        }
-
-        console.log(`🎵 播放音樂: ${path.split('/').pop()}`);
+        console.log(`🎵 播放音樂: ${path.split('/').pop()}`); 
     },
 
+    // 停止音樂
     stopBGM: () => {
         AudioManager.bgm.pause();
         AudioManager.bgm.currentTime = 0;
