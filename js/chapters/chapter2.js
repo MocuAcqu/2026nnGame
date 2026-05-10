@@ -36,12 +36,17 @@ function playSFX(name) {
     const originalPath = sfxPaths[name];
     if (!originalPath) return;
 
-    if (!sfxInstances[name]) {
-        sfxInstances[name] = new Audio(getCachedUrl(originalPath));
-        sfxInstances[name].volume = 0.4;
+    try {
+        if (!sfxInstances[name]) {
+            sfxInstances[name] = new Audio(getCachedUrl(originalPath));
+            sfxInstances[name].volume = 0.4;
+        }
+        sfxInstances[name].currentTime = 0;
+        sfxInstances[name].play().catch(() => {});
+    } catch (err) {
+        console.warn(`[音效] 無法播放音效 ${name}:`, err);
+        // 就算音效出錯，也不要讓整個遊戲崩潰
     }
-    sfxInstances[name].currentTime = 0;
-    sfxInstances[name].play().catch(() => {});
 }
 
 let currentDialogueQueue = [];
@@ -79,7 +84,18 @@ function startDialogue(linesArray, callback = null) {
     dialogueStartTime = Date.now(); // ← 記錄對話開始時間
 
     const firstLine = currentDialogueQueue.shift();
-    textEl.innerText = firstLine.replace(/^.*?:/, '');
+    const firstLineText = firstLine.replace(/^(勇者:|綿羊使者:|警告:)/, '');
+    if (firstLine.startsWith("勇者:")) {
+        nameEl.innerText = "26歲的勇者";
+        document.getElementById('sheep-messenger-img').src = getCachedUrl("assets/images/hero_26.png");
+    } else if (firstLine.startsWith("警告:")) {
+        nameEl.innerText = "幻術之門的警告";
+        overlay.classList.add('warning-mode');
+    } else {
+        nameEl.innerText = "綿羊使者";
+        document.getElementById('sheep-messenger-img').src = getCachedUrl("assets/images/sheep_messenger.png");
+    }
+    textEl.innerText = firstLineText;
 
     console.log(`[對話] 開始，共 ${linesArray.length} 句，剩餘 ${currentDialogueQueue.length} 句`);
 
@@ -117,10 +133,21 @@ function advanceDialogue(event) {
     const overlay = document.getElementById('dialogue-overlay');
     const nameEl = document.getElementById('dialogue-name');
     const boxEl = document.getElementById('dialogue-box');
+    const imgEl = document.getElementById('sheep-messenger-img');
 
     if (currentDialogueQueue.length > 0) {
         const nextLine = currentDialogueQueue.shift();
         
+        const safeUpdateImage = (path) => {
+            try {
+                imgEl.src = getCachedUrl(path);
+            } catch (err) {
+                console.warn(`[對話] 圖片快取失敗，使用預設路徑 (${path}):`, err);
+                // 容錯：如果報錯，直接使用原本的字串路徑，確保瀏覽器能自己嘗試載入
+                imgEl.src = path; 
+            }
+        };
+
         // 解析標籤 (這部分維持你的邏輯)
         if (nextLine.startsWith("警告:")) {
             overlay.classList.remove('hero-mode');
@@ -135,21 +162,21 @@ function advanceDialogue(event) {
             boxEl.classList.remove('glitch-shake');
             nameEl.innerText = "26歲的勇者";
             textEl.innerText = nextLine.replace("勇者:", "");
-            document.getElementById('sheep-messenger-img').src = getCachedUrl("assets/images/hero_26.png");
+            safeUpdateImage("assets/images/hero_26.png"); 
         } else if (nextLine.startsWith("綿羊使者:")) {
             overlay.classList.remove('hero-mode');
             overlay.classList.remove('warning-mode');
             boxEl.classList.remove('glitch-shake');
             nameEl.innerText = "綿羊使者";
             textEl.innerText = nextLine.replace("綿羊使者:", "");
-            document.getElementById('sheep-messenger-img').src = getCachedUrl("assets/images/sheep_messenger.png");
+            safeUpdateImage("assets/images/sheep_messenger.png");
         } else {
             overlay.classList.remove('warning-mode');
             overlay.classList.remove('hero-mode');
             boxEl.classList.remove('glitch-shake');
             nameEl.innerText = "綿羊使者";
             textEl.innerText = nextLine;
-            document.getElementById('sheep-messenger-img').src = getCachedUrl("assets/images/sheep_messenger.png");
+            safeUpdateImage("assets/images/sheep_messenger.png");
         }
     } else {
         console.log('[對話] 對話結束，呼叫 closeDialogue');
