@@ -29,7 +29,6 @@ const sfxPaths = {
     typing: 'assets/audio/typing.mp3', 
     door_open: 'assets/audio/door_open.mp3',
     dialogue_click: 'assets/audio/dialogue_click.mp3',
-    hat_trick_bgm: 'assets/audio/HatTrick.mp3'
 };
 const sfxInstances = {}; 
 
@@ -295,6 +294,7 @@ function bindEvents() {
             if (value > 80 && value < 90) {
                 clue.style.opacity = 1;
                 clue.innerText = "「哪一扇是正確的門，」= 0";
+                playSFX('pickup');
             } else {
                 clue.style.opacity = 0;
             }
@@ -378,7 +378,7 @@ function setupPokerWall() {
                 playSFX('pickup');
                 showToast("發現碎片！");
             } else {
-                // playSFX('card_flip');
+                playSFX('typing');
             }
 
             // 2. 3秒後翻回去

@@ -12,7 +12,7 @@ export const AudioManager = {
 
         AudioManager.bgm.src = cachedPath;
         AudioManager.bgm.loop = true; 
-        AudioManager.bgm.volume = 0.5; 
+        AudioManager.bgm.volume = 0.6; 
         
          AudioManager.bgm.play().catch(e => {
             document.addEventListener('click', () => AudioManager.bgm.play(), { once: true });
