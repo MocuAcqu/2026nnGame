@@ -48,6 +48,7 @@ let currentDialogueQueue = [];
 let dialogueCallback = null; 
 let isDialogueActive = false;
 let isReturningFromHatTrick = false;
+let dialogueAbortController = null;
 
 /**
  * 啟動對話系統
@@ -56,9 +57,13 @@ let isReturningFromHatTrick = false;
  */
 
 function startDialogue(linesArray, callback = null) {
-    isDialogueActive = false;
-    currentDialogueQueue = [];
+    // ✅ 取消上一個對話的所有監聽器（包含還在 setTimeout 裡尚未掛載的）
+    if (dialogueAbortController) {
+        dialogueAbortController.abort();
+    }
+    dialogueAbortController = new AbortController();
 
+    isDialogueActive = false;
     currentDialogueQueue = [...linesArray];
     dialogueCallback = callback;
 
@@ -66,24 +71,26 @@ function startDialogue(linesArray, callback = null) {
     const nameEl = document.getElementById('dialogue-name');
     const textEl = document.getElementById('dialogue-text');
 
-    overlay.removeEventListener('click', advanceDialogue);
-
     nameEl.innerText = "綿羊使者";
     overlay.classList.remove('hidden');
     overlay.style.display = 'flex';
 
-    isDialogueActive = true; 
+    isDialogueActive = true;
 
     const firstLine = currentDialogueQueue.shift();
     textEl.innerText = firstLine.replace(/^.*?:/, '');
 
     console.log(`[對話] 開始，共 ${linesArray.length} 句，剩餘 ${currentDialogueQueue.length} 句`);
 
+    // ✅ 把 signal 傳給 addEventListener，abort 時自動移除
+    const signal = dialogueAbortController.signal;
     setTimeout(() => {
-        overlay.addEventListener('click', advanceDialogue);
+        if (signal.aborted) return; // 如果已被取消就不掛載
+        overlay.addEventListener('click', advanceDialogue, { signal });
         console.log('[對話] 監聽器已掛載，等待點擊');
     }, 400);
 }
+
 function advanceDialogue(event) {
     playSFX('dialogue_click');
     // 如果有事件物件，阻止它繼續傳遞
@@ -144,21 +151,24 @@ function advanceDialogue(event) {
 }
 
 function closeDialogue() {
+    // ✅ 關閉時也 abort，確保監聽器被清理
+    if (dialogueAbortController) {
+        dialogueAbortController.abort();
+        dialogueAbortController = null;
+    }
+
     const overlay = document.getElementById('dialogue-overlay');
     overlay.classList.add('hidden');
     overlay.style.display = 'none';
     overlay.classList.remove('warning-mode');
-    
-    // 移除監聽器
-    overlay.removeEventListener('click', advanceDialogue);
-    
-    isDialogueActive = false;
 
-    // 執行回調
+    isDialogueActive = false;
+    console.log('[對話] closeDialogue 執行，callback 存在:', !!dialogueCallback);
+
     if (dialogueCallback) {
         const action = dialogueCallback;
         dialogueCallback = null;
-        action();
+        setTimeout(action, 0); // ✅ 非同步執行，避免 call stack 嵌套
     }
 }
 
