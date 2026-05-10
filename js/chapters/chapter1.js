@@ -1,6 +1,7 @@
 import { SaveSystem } from '../saveSystem.js';
 import { AudioManager } from '../audioManager.js';
 import { Staircase } from './staircase.js';
+import { getCachedUrl } from '../assetsConfig.js'; 
 
 let canvas, ctx;
 let gameLoopId;
@@ -14,18 +15,22 @@ const CHEST_MOVE_FRAMES = 20 * 60;
 const CHEST_RESPAWN_FRAMES = 15 * 60; 
 let respawnTimers = [];
 
-const sfx = {
-    walk: new Audio('assets/audio/walk.mp3'),
-    jump: new Audio('assets/audio/jump.mp3'),
-    land: new Audio('assets/audio/land.mp3'), 
-    pickup: new Audio('assets/audio/pickup.mp3'),
-    miningWood: new Audio('assets/audio/mining_wood.mp3'),
-    miningStone: new Audio('assets/audio/mining_stone.mp3'),
-    craft: new Audio('assets/audio/craft_success.mp3'),
-    mimic_bite: new Audio('assets/audio/mimic_bite.mp3'),
-    key_get: new Audio('assets/audio/pickup.mp3'), 
-    dialogue_click: new Audio('assets/audio/dialogue_click.mp3'),
+const sfxPaths = {
+    walk: 'assets/audio/walk.mp3',
+    jump: 'assets/audio/jump.mp3',
+    land: 'assets/audio/land.mp3', 
+    pickup: 'assets/audio/pickup.mp3',
+    miningWood: 'assets/audio/mining_wood.mp3',
+    miningStone: 'assets/audio/mining_stone.mp3',
+    craft: 'assets/audio/craft_success.mp3',
+    mimic_bite: 'assets/audio/mimic_bite.mp3',
+    key_get: 'assets/audio/pickup.mp3', 
+    dialogue_click: 'assets/audio/dialogue_click.mp3',
+    hit: 'assets/audio/hit.mp3',
+    playerHit: 'assets/audio/player_hit.mp3',
 };
+
+const sfxInstances = {}; 
 
 let dialogueCallback = null; 
 
@@ -101,34 +106,21 @@ scenes[3].enemies = [
 
 const bgImages = {};
 
-/*
-function preloadAssets() {
-    const promises = scenes.map(scene => {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.src = scene.bgPath;
-            img.onload = () => {
-                bgImages[scene.bgPath] = img; // 存入快取
-                resolve();
-            };
-            img.onerror = () => {
-                console.error(`圖片載入失敗: ${scene.bgPath}`);
-                resolve(); 
-            };
-        });
-    });
-    return Promise.all(promises);
-}
-*/
-
 function playSFX(name) {
-    sfx[name].currentTime = 0;
-    sfx[name].play().catch(() => {});
-}
+    const originalPath = sfxPaths[name];
+    if (!originalPath) return;
 
-Object.values(sfx).forEach(audio => {
-    audio.volume = 0.3; 
-});
+    // 如果這個音效還沒被實體化過，就用快取網址建立它
+    if (!sfxInstances[name]) {
+        const cachedUrl = getCachedUrl(originalPath); // ★ 拿取記憶體裡的 blob 網址
+        sfxInstances[name] = new Audio(cachedUrl);
+        sfxInstances[name].volume = 0.5; // 在這裡統一設定音量
+    }
+
+    // 播放音效
+    sfxInstances[name].currentTime = 0;
+    sfxInstances[name].play().catch(() => {});
+}
 
 const RECIPES = [
     {
@@ -403,17 +395,17 @@ export const Chapter1 = {
     init: async () => {
         const screen = document.getElementById('chapter1-screen');
 
-        AudioManager.playBGM('assets/audio/bgm-chapter1.mp3');
+        AudioManager.playBGM(getCachedUrl('assets/audio/bgm-chapter1.mp3'));
         AudioManager.bgm.volume = 0.1;
         canvas = document.getElementById('game-canvas');
         ctx = canvas.getContext('2d');
 
-        //await preloadAssets();
         scenes.forEach(scene => {
             const img = new Image();
-            img.src = scene.bgPath;
+            img.src = getCachedUrl(scene.bgPath);
             bgImages[scene.bgPath] = img;
         });
+
         console.log("所有場景資源載入完成！");
 
         initParticles();
@@ -446,10 +438,6 @@ export const Chapter1 = {
 
         gameState.inventory.wood_sword = gameState.inventory.wood_sword || 0;
         gameState.inventory.stone_sword = gameState.inventory.stone_sword || 0;
-
-        sfx.hit = new Audio('assets/audio/hit.mp3'); // 攻擊到怪物的聲音
-        sfx.playerHit = new Audio('assets/audio/player_hit.mp3'); // 勇者受傷的聲音
-        Object.values(sfx).forEach(a => a.volume = 0.2);
 
         updateUI();
         bindInput();
@@ -541,9 +529,9 @@ function updatePhysics() {
         player.y = floorY - player.height;
         player.vy = 0;
         
-        if (keys.Space) {
+        if (keys.Space && !player.isMining) {
             player.vy = player.jumpPower;
-            // TODO: 之後可以加跳躍音效
+            playSFX('jump'); 
         }
     }
 
@@ -779,6 +767,7 @@ function handleDeath() {
         text: "此技能僅能獲得一次。",
         effect: "可恢復50%血量。"
     };
+    saveWorldState(); 
 
     showRewardSkill(deadSkill, () => {
         startDialogue([
@@ -1271,11 +1260,6 @@ function drawPlayer() {
     const isJumping = player.vy < -1;
     const isFalling = player.vy > 1;
     const isRunning = Math.abs(player.vx) > 0.5;
-
-    // 跳躍音效
-    if (keys.Space && !player.isMining ) {
-        playSFX('jump');
-    }
 
     // 飄動的披風 (金色)
     ctx.fillStyle = '#feca57';

@@ -1,3 +1,9 @@
+export const ASSET_CACHE = {};
+
+export function getCachedUrl(originalPath) {
+    return ASSET_CACHE[originalPath] || originalPath;
+}
+
 export const CORE_ASSETS = {
     images: [
         'assets/images/menu_page.png',

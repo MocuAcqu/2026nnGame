@@ -1,31 +1,38 @@
 import { SaveSystem } from '../saveSystem.js';
 import { AudioManager } from '../audioManager.js';
+import { getCachedUrl } from '../assetsConfig.js'; 
 
 let currentDialogueQueue = [];
 let dialogueCallback = null; 
 let isDialogueActive = false;
-const knockSFX = new Audio('assets/audio/knock.mp3');
-knockSFX.volume = 0.4;
 
-const sfx = {
-    pickup: new Audio('assets/audio/pickup.mp3'),
-    walk: new Audio('assets/audio/walk.mp3'),
-    land: new Audio('assets/audio/land.mp3'),
-    fail: new Audio('assets/audio/fail_buzzer.mp3'),  
-    success: new Audio('assets/audio/correct_chime.mp3'), 
-    tick: new Audio('assets/audio/clock_tick.mp3'), 
-    typing: new Audio('assets/audio/typing.mp3'), 
-    hit: new Audio('assets/audio/hit.mp3'),
-    playerHit: new Audio('assets/audio/player_hit.mp3'),
-    craft: new Audio('assets/audio/craft_success.mp3'),
-    dialogue_click: new Audio('assets/audio/dialogue_click.mp3'),
+const sfxPaths = {
+    knock: 'assets/audio/knock.mp3',
+    pickup: 'assets/audio/pickup.mp3',
+    walk: 'assets/audio/walk.mp3',
+    land: 'assets/audio/land.mp3',
+    fail: 'assets/audio/fail_buzzer.mp3',  
+    success: 'assets/audio/correct_chime.mp3', 
+    tick: 'assets/audio/clock_tick.mp3', 
+    typing: 'assets/audio/typing.mp3', 
+    hit: 'assets/audio/hit.mp3',
+    playerHit: 'assets/audio/player_hit.mp3',
+    craft: 'assets/audio/craft_success.mp3',
+    dialogue_click: 'assets/audio/dialogue_click.mp3',
 };
 
-Object.values(sfx).forEach(a => a.volume = 0.7);
+const sfxInstances = {}; 
 
 function playSFX(name) {
-    sfx[name].currentTime = 0;
-    sfx[name].play().catch(() => {});
+    const originalPath = sfxPaths[name];
+    if (!originalPath) return;
+
+    if (!sfxInstances[name]) {
+        sfxInstances[name] = new Audio(getCachedUrl(originalPath));
+        sfxInstances[name].volume = 0.5;
+    }
+    sfxInstances[name].currentTime = 0;
+    sfxInstances[name].play().catch(() => {});
 }
 
 
@@ -51,9 +58,7 @@ function startDialogue(linesArray, callback = null) {
 }
 
 function playKnockSound() {
-    knockSFX.currentTime = 0;
-     knockSFX.playbackRate = 0.9+ (Math.random() * 0.2);
-    knockSFX.play().catch(() => {}); // 捕獲可能的瀏覽器阻擋錯誤
+    playSFX('knock');
 }
 
 function advanceDialogue(event) {
@@ -130,7 +135,7 @@ export const Chapter3 = {
 
         // 4. 變換 BGM
         AudioManager.stopBGM();
-        AudioManager.playBGM('assets/audio/Candle in the Corridor.mp3');
+        AudioManager.playBGM(getCachedUrl('assets/audio/Candle in the Corridor.mp3'));
 
         // 5. 確保對話框是乾淨的
         document.getElementById('dialogue-overlay').classList.add('hidden');
@@ -832,7 +837,7 @@ async function triggerEndingTransition() {
     const victoryBg = document.getElementById('victory-final-bg');
     victoryBg.style.opacity = 1;
 
-    AudioManager.playBGM('assets/audio/victory_theme.mp3');
+    AudioManager.playBGM(getCachedUrl('assets/audio/victory_theme.mp3'));
 
     // 白光淡出
     flash.style.opacity = 0;

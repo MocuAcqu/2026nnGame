@@ -5,7 +5,7 @@ import { Chapter1 } from './chapters/chapter1.js';
 import { Chapter2 } from './chapters/chapter2.js';
 import { Chapter3 } from './chapters/chapter3.js';
 import { Collection } from './collection.js';
-import { CORE_ASSETS, CHAPTER1_ASSETS, CHAPTER2_ASSETS, CHAPTER3_ASSETS } from './assetsConfig.js';
+import { CORE_ASSETS, CHAPTER1_ASSETS, CHAPTER2_ASSETS, CHAPTER3_ASSETS, ASSET_CACHE } from './assetsConfig.js';
 
 const startOverlay = document.getElementById('start-overlay');
 const mainMenu = document.getElementById('main-menu');
@@ -26,27 +26,9 @@ async function preloadGlobalAssets() {
     const progressText = document.getElementById('loading-text');
     const detailText = document.getElementById('loading-detail');
 
-    // 1. 收集所有資源，並使用 Set() 來「自動去除重複的檔案」
-    const allImages = [...new Set([
-        ...(CORE_ASSETS.images || []), 
-        ...(CHAPTER1_ASSETS.images || []), 
-        ...(CHAPTER2_ASSETS.images || []), 
-        ...(CHAPTER3_ASSETS.images || [])
-    ])];
-    
-    const allAudio = [...new Set([
-        ...(CORE_ASSETS.audio || []), 
-        ...(CHAPTER1_ASSETS.audio || []), 
-        ...(CHAPTER2_ASSETS.audio || []), 
-        ...(CHAPTER3_ASSETS.audio || [])
-    ])];
-    
-    const allVideos = [...new Set([
-        ...(CORE_ASSETS.video || []), 
-        ...(CHAPTER1_ASSETS.video || []), 
-        ...(CHAPTER2_ASSETS.video || []), 
-        ...(CHAPTER3_ASSETS.video || [])
-    ])];
+    const allImages = [...new Set([...(CORE_ASSETS.images||[]), ...(CHAPTER1_ASSETS.images||[]), ...(CHAPTER2_ASSETS.images||[]), ...(CHAPTER3_ASSETS.images||[])])];
+    const allAudio = [...new Set([...(CORE_ASSETS.audio||[]), ...(CHAPTER1_ASSETS.audio||[]), ...(CHAPTER2_ASSETS.audio||[]), ...(CHAPTER3_ASSETS.audio||[])])];
+    const allVideos = [...new Set([...(CORE_ASSETS.video||[])])];
     
     const allAssets = [
         ...allImages.map(src => ({ src, type: 'image' })),
@@ -65,64 +47,70 @@ async function preloadGlobalAssets() {
         detailText.innerText = `正在讀取: ${src.split('/').pop()}`;
     };
 
-    // 2. 資源載入器 (極簡原生快取法)
-    const loadAsset = (asset) => {
+    const fetchAssetAsBlobURL = (src) => {
         return new Promise((resolve) => {
-            if (asset.type === 'image') {
-                const img = new Image();
-                img.onload = () => { updateProgress(asset.src); resolve(); };
-                img.onerror = () => { updateProgress(asset.src); resolve(); };
-                img.src = asset.src;
-            } 
-            else if (asset.type === 'audio') {
-                const audio = new Audio();
-                audio.oncanplaythrough = () => { updateProgress(asset.src); resolve(); };
-                audio.onerror = () => { updateProgress(asset.src); resolve(); };
-                audio.src = asset.src;
-                audio.load();
-                setTimeout(resolve, 4000); // 4秒超時保護
-            }
-            else if (asset.type === 'video') {
-                // 利用隱形的 video 標籤強迫瀏覽器下載影片到快取中
-                const vid = document.createElement('video');
-                vid.preload = 'auto'; // 要求瀏覽器預先下載
-                vid.oncanplaythrough = () => { updateProgress(asset.src); resolve(); };
-                vid.onerror = () => { updateProgress(asset.src); resolve(); };
-                vid.src = asset.src;
-                vid.load();
-                setTimeout(resolve, 8000); // 影片較大，給 8 秒超時保護
-            }
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', src, true);
+            xhr.responseType = 'blob';
+
+            xhr.onload = function() {
+                if (this.status === 200) {
+                    const blob = this.response;
+                    const objectURL = URL.createObjectURL(blob);
+                    ASSET_CACHE[src] = objectURL;
+
+                    if (src.includes('nnGame_序幕.mp4')) {
+                        const videoEl = document.getElementById('intro-video');
+                        if (videoEl) videoEl.src = objectURL;
+                    }
+                }
+                updateProgress(src);
+                resolve();
+            };
+
+            xhr.onerror = function() {
+                console.warn(`資源下載失敗: ${src}`);
+                updateProgress(src);
+                resolve(); 
+            };
+
+            xhr.send();
         });
     };
 
-    // 3. 一次性平行發送所有請求 (移除分批機制)
-    // 使用 allSettled 確保即便某個檔案壞了，遊戲依然能啟動
-    await Promise.allSettled(allAssets.map(asset => loadAsset(asset)));
+    await Promise.allSettled(allAssets.map(asset => fetchAssetAsBlobURL(asset.src)));
 
-    console.log(`✅ 載入完畢！共載入 ${totalAssets} 個不重複檔案。`);
+    console.log("✅ 所有圖片、音樂、影片已載入記憶體！");
     
     await new Promise(r => setTimeout(r, 500));
 
+    // ★ 正確的轉場邏輯：資源載好後，才隱藏 Loading 並顯示 Start
     loadingScreen.style.opacity = 0;
     setTimeout(() => {
         loadingScreen.classList.add('hidden');
         document.getElementById('start-overlay').classList.remove('hidden');
-    }, 800);
+    }, 1000);
 }
 
 let currentScene = 'menu';
 
 async function init() {
     console.log("🚀 遊戲系統啟動...");
-    // document.getElementById('start-overlay').classList.add('hidden');
-    document.getElementById('loading-screen').classList.add('hidden');
+    
+    // ★ 確保一開始顯示 Loading 畫面，隱藏 Start 畫面
+    document.getElementById('loading-screen').classList.remove('hidden');
+    document.getElementById('loading-screen').style.opacity = 1;
+    document.getElementById('start-overlay').classList.add('hidden');
 
-    // await preloadGlobalAssets();
+    // ★ 執行核心載入 (把註解拿掉！)
+    await preloadGlobalAssets();
 
     updateButtonVisibility();
 
-    startOverlay.addEventListener('click', () => {
-        startOverlay.classList.add('fade-out');
+    // 綁定按鈕 (保持原樣)
+    const startOverlayEl = document.getElementById('start-overlay');
+    startOverlayEl.addEventListener('click', () => {
+        startOverlayEl.classList.add('fade-out');
         checkAndPlayMusic();
     }, { once: true });
 
@@ -151,7 +139,6 @@ async function init() {
     if (btnCollection) {
         btnCollection.onclick = Collection.open;
     }
-
 }
 
 function checkAndPlayMusic() {

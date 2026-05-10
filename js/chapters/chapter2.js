@@ -1,5 +1,6 @@
 import { SaveSystem } from '../saveSystem.js';
 import { AudioManager } from '../audioManager.js';
+import { getCachedUrl } from '../assetsConfig.js'; 
 
 // 核心變數
 let currentRoomIndex = 0; // 0:主, 1:撲克, 2:鏡子, 3:旋轉, 4:水晶
@@ -18,24 +19,30 @@ const oraclePhrases = [
     "嗚嗚嗚，不小心又做得太晚了。", "偶爾瘋狂一下也不錯呢。", "前進吧，去尋找這個故事的結局吧。"
 ];
 
-const sfx = {
-    pickup: new Audio('assets/audio/pickup.mp3'),
-    walk: new Audio('assets/audio/walk.mp3'),
-    land: new Audio('assets/audio/land.mp3'),
-
-    fail: new Audio('assets/audio/fail_buzzer.mp3'),  
-    success: new Audio('assets/audio/correct_chime.mp3'), 
-    tick: new Audio('assets/audio/clock_tick.mp3'), 
-    typing: new Audio('assets/audio/typing.mp3'), 
-    door_open: new Audio('assets/audio/door_open.mp3'),
-    dialogue_click: new Audio('assets/audio/dialogue_click.mp3'),
+const sfxPaths = {
+    pickup: 'assets/audio/pickup.mp3',
+    walk: 'assets/audio/walk.mp3',
+    land: 'assets/audio/land.mp3',
+    fail: 'assets/audio/fail_buzzer.mp3',  
+    success: 'assets/audio/correct_chime.mp3', 
+    tick: 'assets/audio/clock_tick.mp3', 
+    typing: 'assets/audio/typing.mp3', 
+    door_open: 'assets/audio/door_open.mp3',
+    dialogue_click: 'assets/audio/dialogue_click.mp3',
+    hat_trick_bgm: 'assets/audio/HatTrick.mp3'
 };
-
-Object.values(sfx).forEach(a => a.volume = 0.5);
+const sfxInstances = {}; 
 
 function playSFX(name) {
-    sfx[name].currentTime = 0;
-    sfx[name].play().catch(() => {});
+    const originalPath = sfxPaths[name];
+    if (!originalPath) return;
+
+    if (!sfxInstances[name]) {
+        sfxInstances[name] = new Audio(getCachedUrl(originalPath));
+        sfxInstances[name].volume = 0.5;
+    }
+    sfxInstances[name].currentTime = 0;
+    sfxInstances[name].play().catch(() => {});
 }
 
 let currentDialogueQueue = [];

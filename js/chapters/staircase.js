@@ -1,6 +1,7 @@
 import { SaveSystem } from '../saveSystem.js';
 import { AudioManager } from '../audioManager.js';
 import { Chapter2 } from './chapter2.js';
+import { getCachedUrl } from '../assetsConfig.js'; 
 
 const memories = [
     { text: "雖然總是會說著為什麼我是活動長?但成為活動長的期間，真的很令人開心。", skill: "慧眼識英雄", effect: "躲避敵人攻擊一回合" },
@@ -20,9 +21,22 @@ let currentFloor = 0;
 let heldSkills = [];
 let inspectingIndex = null;
 
+const sfxPaths = {
+    walk: 'assets/audio/stairs_climb.mp3',
+    dialogue_click: 'assets/audio/dialogue_click.mp3'
+};
+const sfxInstances = {};
 
-const walkSFX = new Audio('assets/audio/stairs_climb.mp3');
-[walkSFX].forEach(a => a.volume = 0.7);
+function playSFX(name) {
+    const originalPath = sfxPaths[name];
+    if (!originalPath) return;
+    if (!sfxInstances[name]) {
+        sfxInstances[name] = new Audio(getCachedUrl(originalPath));
+        sfxInstances[name].volume = 0.5;
+    }
+    sfxInstances[name].currentTime = 0;
+    sfxInstances[name].play().catch(() => {});
+}
 
 function showIntroDialogue() {
     const overlay = document.getElementById('dialogue-overlay');
@@ -75,7 +89,7 @@ export const Staircase = {
         document.getElementById('chapter1-screen').classList.add('hidden');
         document.getElementById('staircase-screen').classList.remove('hidden');
 
-        AudioManager.playBGM('assets/audio/Stairwell Humming.mp3');
+        AudioManager.playBGM(getCachedUrl('assets/audio/Stairwell Humming.mp3'));
         AudioManager.bgm.volume = 0.3;
         showIntroDialogue();        
     },
@@ -197,9 +211,7 @@ async function nextFloorWithTransition() {
     white.classList.remove('hidden');
     setTimeout(() => white.style.opacity = 1, 10);
 
-    // 播腳步聲
-    walkSFX.currentTime = 0;
-    walkSFX.play();
+    playSFX('walk');
 
     await new Promise(r => setTimeout(r, 5000)); // 走 1.5 秒
 
@@ -225,7 +237,7 @@ function loadFloor() {
     const bg = document.querySelector('.staircase-photo-bg');
     
     // 注意：路徑是相對於 index.html 的
-    bg.style.backgroundImage = `url('assets/images/stairs_${currentFloor + 1}.jpg')`;
+    bg.style.backgroundImage = `url(${getCachedUrl(`assets/images/stairs_${currentFloor + 1}.jpg`)})`;
 
     document.getElementById('floor-indicator').innerText = `FLOOR ${String(currentFloor + 1).padStart(2, '0')}`;
     document.getElementById('staircase-progress').style.width = `${((currentFloor + 1) / 11) * 100}%`;
@@ -276,8 +288,7 @@ function renderSkillInventory() {
 
 function showFinalDoor() {
     const bg = document.querySelector('.staircase-photo-bg');
-    // ★ 修正路徑
-    bg.style.backgroundImage = `url('assets/images/stairs_final.png')`;
+    bg.style.backgroundImage = `url(${getCachedUrl('assets/images/stairs_final.png')})`;
 
     // 隱藏原本的選擇按鈕
     document.querySelector('.action-buttons').style.display = 'none';

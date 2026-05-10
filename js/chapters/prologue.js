@@ -1,5 +1,6 @@
 import { Chapter1 } from './chapter1.js';
 import { SaveSystem } from '../saveSystem.js';
+import { getCachedUrl } from '../assetsConfig.js';
 
 const prologueLines = [
     "想迎來 27 歲的人生",
@@ -13,8 +14,18 @@ const prologueLines = [
     "- 迎來 27 歲世界的三道關卡"
 ];
 
-const typingAudio = new Audio('assets/audio/typing.mp3');
-typingAudio.volume = 0.1; 
+let typingAudio = null;
+
+function playTypingSound() {
+    // 第一次播放時，建立 Audio 物件並給予快取網址
+    if (!typingAudio) {
+        typingAudio = new Audio(getCachedUrl('assets/audio/typing.mp3'));
+    }
+
+    typingAudio.currentTime = 0;
+    typingAudio.volume = 0.2 + Math.random() * 0.4;
+    typingAudio.play().catch(() => {}); 
+}
 
 export const Prologue = {
     play: async () => {
@@ -73,12 +84,6 @@ async function typeLines(container, lines) {
         lineDiv.classList.remove('cursor');
         await delay(300); 
     }
-}
-
-function playTypingSound() {
-    typingAudio.currentTime = 0;
-    typingAudio.volume = 0.2 + Math.random() * 0.4;
-    typingAudio.play().catch(() => {}); 
 }
 
 // 播放影片
