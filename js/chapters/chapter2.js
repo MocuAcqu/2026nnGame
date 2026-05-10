@@ -48,7 +48,6 @@ let currentDialogueQueue = [];
 let dialogueCallback = null; 
 let isDialogueActive = false;
 let isReturningFromHatTrick = false;
-let dialogueLocked = false;
 
 /**
  * 啟動對話系統
@@ -63,6 +62,7 @@ function startDialogue(linesArray, callback = null) {
 
     const overlay = document.getElementById('dialogue-overlay');
     const nameEl = document.getElementById('dialogue-name');
+    const textEl = document.getElementById('dialogue-text');
 
     nameEl.innerText = "綿羊使者";
 
@@ -73,20 +73,17 @@ function startDialogue(linesArray, callback = null) {
 
     isDialogueActive = true;
 
-    // 防止剛開啟瞬間點擊穿透
-    dialogueLocked = true;
+    // ★ 先顯示第一句
+    const firstLine = currentDialogueQueue.shift();
+    textEl.innerText = firstLine.replace(/^.*?:/, '');
 
-    overlay.addEventListener('click', advanceDialogue);
-
-    advanceDialogue();
-
+    // ★ 再綁定點擊
     setTimeout(() => {
-        dialogueLocked = false;
-    }, 200);
+        overlay.addEventListener('click', advanceDialogue);
+    }, 50);
 }
 
 function advanceDialogue(event) {
-    if (dialogueLocked) return;
     playSFX('dialogue_click');
     // 如果有事件物件，阻止它繼續傳遞
     if (event) {
@@ -583,7 +580,7 @@ async function startHatMinigame() {
     
     hatScreen.classList.remove('hidden');
     mainScene.classList.add('hidden'); // 隱藏原本的守衛場景
-    resetHats(); // 初始化帽子位置
+    await resetHats(); // 初始化帽子位置
 
     // 等動畫結束 (0.6s) 移除類別
     await new Promise(r => setTimeout(r, 1500));
