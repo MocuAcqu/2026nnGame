@@ -701,7 +701,6 @@ async function handleHatClick(idx) {
         await new Promise(r => setTimeout(r, 400));
 
         hatScreen.classList.add('hidden');
-        mainScene.classList.remove('hidden');
         isReturningFromHatTrick = true;
         
         // 切換音樂回主旋律
@@ -712,6 +711,7 @@ async function handleHatClick(idx) {
         flash.classList.remove('flash-anim');
 
         showRewardSkill(newSkill, () => {
+            mainScene.classList.remove('hidden');
             startDialogue([
                 "綿羊使者: 不錯嘛，竟然能從帽子戲法中帶回這份力量。",
                 "綿羊使者: 現在，幻術已經對你失效了。去打開那扇正確的門吧。"
@@ -1232,7 +1232,7 @@ function showRewardSkill(skillObj, callback) {
         e.stopPropagation(); // 阻止冒泡
         modal.classList.add('hidden');
         if (callback) {
-            setTimeout(callback, 500); 
+            setTimeout(callback, 300); 
         }
     };
 }
