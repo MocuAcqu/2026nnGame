@@ -134,6 +134,7 @@ function advanceDialogue(event) {
     const nameEl = document.getElementById('dialogue-name');
     const boxEl = document.getElementById('dialogue-box');
     const imgEl = document.getElementById('sheep-messenger-img');
+    console.log('解析標籤前-1');
 
     if (currentDialogueQueue.length > 0) {
         const nextLine = currentDialogueQueue.shift();
@@ -147,6 +148,8 @@ function advanceDialogue(event) {
                 imgEl.src = path; 
             }
         };
+
+        console.log('解析標籤前-2');
 
         // 解析標籤 (這部分維持你的邏輯)
         if (nextLine.startsWith("警告:")) {
@@ -178,6 +181,8 @@ function advanceDialogue(event) {
             textEl.innerText = nextLine;
             safeUpdateImage("assets/images/sheep_messenger.png");
         }
+
+        console.log('解析標籤後');
     } else {
         console.log('[對話] 對話結束，呼叫 closeDialogue');
         closeDialogue();
@@ -185,7 +190,6 @@ function advanceDialogue(event) {
 }
 
 function closeDialogue() {
-    // ✅ 關閉時也 abort，確保監聽器被清理
     if (dialogueAbortController) {
         dialogueAbortController.abort();
         dialogueAbortController = null;
