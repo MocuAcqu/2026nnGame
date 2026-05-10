@@ -56,7 +56,6 @@ let isReturningFromHatTrick = false;
  */
 
 function startDialogue(linesArray, callback = null) {
-
     currentDialogueQueue = [...linesArray];
     dialogueCallback = callback;
 
@@ -65,22 +64,20 @@ function startDialogue(linesArray, callback = null) {
     const textEl = document.getElementById('dialogue-text');
 
     nameEl.innerText = "綿羊使者";
-
     overlay.classList.remove('hidden');
     overlay.style.display = 'flex';
 
+    // 確保先移除舊的監聽器
     overlay.removeEventListener('click', advanceDialogue);
-
     isDialogueActive = true;
 
-    // ★ 先顯示第一句
     const firstLine = currentDialogueQueue.shift();
     textEl.innerText = firstLine.replace(/^.*?:/, '');
 
-    // ★ 再綁定點擊
+    // ★ 將延遲從 50ms 提高到 400ms，確保所有上層點擊事件都已結束
     setTimeout(() => {
         overlay.addEventListener('click', advanceDialogue);
-    }, 50);
+    }, 400);
 }
 
 function advanceDialogue(event) {
@@ -1235,7 +1232,7 @@ function showRewardSkill(skillObj, callback) {
         e.stopPropagation(); // 阻止冒泡
         modal.classList.add('hidden');
         if (callback) {
-            setTimeout(callback, 300); 
+            setTimeout(callback, 500); 
         }
     };
 }
