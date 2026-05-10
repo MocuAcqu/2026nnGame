@@ -49,6 +49,7 @@ let dialogueCallback = null;
 let isDialogueActive = false;
 let isReturningFromHatTrick = false;
 let dialogueAbortController = null;
+let dialogueStartTime = 0;
 
 /**
  * 啟動對話系統
@@ -57,7 +58,6 @@ let dialogueAbortController = null;
  */
 
 function startDialogue(linesArray, callback = null) {
-    // ✅ 取消上一個對話的所有監聽器（包含還在 setTimeout 裡尚未掛載的）
     if (dialogueAbortController) {
         dialogueAbortController.abort();
     }
@@ -76,22 +76,29 @@ function startDialogue(linesArray, callback = null) {
     overlay.style.display = 'flex';
 
     isDialogueActive = true;
+    dialogueStartTime = Date.now(); // ← 記錄對話開始時間
 
     const firstLine = currentDialogueQueue.shift();
     textEl.innerText = firstLine.replace(/^.*?:/, '');
 
     console.log(`[對話] 開始，共 ${linesArray.length} 句，剩餘 ${currentDialogueQueue.length} 句`);
 
-    // ✅ 把 signal 傳給 addEventListener，abort 時自動移除
     const signal = dialogueAbortController.signal;
+    // ← 延遲從 400ms 改為 600ms，給冒泡事件足夠時間消散
     setTimeout(() => {
-        if (signal.aborted) return; // 如果已被取消就不掛載
+        if (signal.aborted) return;
         overlay.addEventListener('click', advanceDialogue, { signal });
         console.log('[對話] 監聽器已掛載，等待點擊');
-    }, 400);
+    }, 600);
 }
 
+
 function advanceDialogue(event) {
+    if (Date.now() - dialogueStartTime < 600) {
+        console.warn('[對話] 過早觸發，忽略（可能是事件冒泡）');
+        return;
+    }
+
     playSFX('dialogue_click');
     // 如果有事件物件，阻止它繼續傳遞
     if (event) {
@@ -1231,7 +1238,7 @@ function showRewardSkill(skillObj, callback) {
         e.stopPropagation(); // 阻止冒泡
         modal.classList.add('hidden');
         if (callback) {
-            setTimeout(callback, 500); 
+            setTimeout(callback, 100); 
         }
     };
 }
