@@ -95,7 +95,7 @@ function playVideoWithSkip(video, skipBtn) {
 
         const finish = () => {
             video.pause();      
-            videoElement.volume = 0.5;    
+            video.volume = 0.5;    
             video.currentTime = 0; 
             skipBtn.style.display = 'none'; 
             
