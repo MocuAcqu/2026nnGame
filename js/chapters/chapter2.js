@@ -56,25 +56,23 @@ let isReturningFromHatTrick = false;
  */
 
 function startDialogue(linesArray, callback = null) {
-    // 如果已經在對話中，先強制結束舊的 (或你可以選擇排隊，這裡採用強制更新)
-    currentDialogueQueue = [...linesArray]; // 淺拷貝陣列
+
+    currentDialogueQueue = [...linesArray];
     dialogueCallback = callback;
-    
+
     const overlay = document.getElementById('dialogue-overlay');
     const nameEl = document.getElementById('dialogue-name');
-    
+
     nameEl.innerText = "綿羊使者";
+
     overlay.classList.remove('hidden');
-    overlay.style.display = 'flex'; // 確保顯示
-
-    // 使用具名函式方便移除監聽，避免重複綁定
+    overlay.style.display = 'flex';
     overlay.removeEventListener('click', advanceDialogue);
-    isDialogueActive = true; 
-    advanceDialogue(); 
 
-    setTimeout(() => {
-        overlay.addEventListener('click', advanceDialogue);
-    }, 100); 
+    isDialogueActive = true;
+
+    overlay.addEventListener('click', advanceDialogue);
+    advanceDialogue();
 }
 
 function advanceDialogue(event) {
@@ -294,7 +292,6 @@ function bindEvents() {
             if (value > 80 && value < 90) {
                 clue.style.opacity = 1;
                 clue.innerText = "「哪一扇是正確的門，」= 0";
-                playSFX('pickup');
             } else {
                 clue.style.opacity = 0;
             }
@@ -759,6 +756,7 @@ function bindMirrorEvents() {
         if (val >= 82 && val <= 88) {
             clue.style.opacity = 1;
             clue.style.transform = "scale(1.1)";
+            playSFX('pickup');
             
             // 第一次發現時跳提示
             if (clue.dataset.found !== "true") {
