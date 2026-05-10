@@ -16,7 +16,7 @@ const oraclePhrases = [
     "「？」= 6", 
     "猜猜看鴨，還有多少未知等著你。", "均衡飲食很重要!", "你做得很好，真的~", "希望你可以一直身體健康、平安順遂。",
     "你是屬於你的世界的主角呢~", "記得也要把你自己放進被捕捉的畫面裡。", "這是一個很重要的日子呢。", "謹遵舍長老大的指令。",
-    "嗚嗚嗚，不小心又做得太晚了。", "偶爾瘋狂一下也不錯呢。", "前進吧，去尋找這個故事的結局吧。"
+    "嗚嗚嗚，不小心又做得太晚了。", "偶爾瘋狂一下也不錯呢。", "前進吧，去尋找這個故事的結局吧。","呱"
 ];
 
 const sfxPaths = {
@@ -67,14 +67,11 @@ function startDialogue(linesArray, callback = null) {
     overlay.classList.remove('hidden');
     overlay.style.display = 'flex';
 
-    // 確保先移除舊的監聽器
-    overlay.removeEventListener('click', advanceDialogue);
     isDialogueActive = true;
 
     const firstLine = currentDialogueQueue.shift();
     textEl.innerText = firstLine.replace(/^.*?:/, '');
 
-    // ★ 將延遲從 50ms 提高到 400ms，確保所有上層點擊事件都已結束
     setTimeout(() => {
         overlay.addEventListener('click', advanceDialogue);
     }, 400);
@@ -187,8 +184,8 @@ export const Chapter2 = {
 
         const btnHatGame = document.getElementById('btn-start-hat-game');
         if (btnHatGame) btnHatGame.onclick = shuffleHats;
-        
-        AudioManager.playBGM('assets/audio/Velvet Curtain Alchemy.mp3');
+
+        AudioManager.playBGM(getCachedUrl('assets/audio/Velvet Curtain Alchemy.mp3'));
 
         const gameState = SaveSystem.load();
         
@@ -556,7 +553,7 @@ function enterDoor(isCorrect) {
 
         startDialogue(["好笨，你被虛假所迷惑，墜入了帽子戲法！"], () => {
             AudioManager.stopBGM();
-            AudioManager.playBGM('assets/audio/HatTrick.mp3');
+            AudioManager.playBGM(getCachedUrl('assets/audio/HatTrick.mp3'));
             startHatMinigame();
         });
     }
@@ -707,7 +704,7 @@ async function handleHatClick(idx) {
         await new Promise(r => setTimeout(r, 400));
         flash.classList.remove('flash-anim');
 
-        AudioManager.playBGM('assets/audio/Velvet Curtain Alchemy.mp3');
+        AudioManager.playBGM(getCachedUrl('assets/audio/Velvet Curtain Alchemy.mp3'));
 
         await new Promise(r => setTimeout(r, 800));
         mainScene.classList.remove('hidden');
@@ -919,7 +916,7 @@ function startIllusionGates() {
     document.getElementById('illusion-gates-screen').classList.remove('hidden');
 
     AudioManager.stopBGM();
-    AudioManager.playBGM('assets/audio/Hull-Slap Echoes.mp3');
+    AudioManager.playBGM(getCachedUrl('assets/audio/Hull-Slap Echoes.mp3'));
 
     setTimeout(() => {
         startDialogue([
@@ -1073,9 +1070,6 @@ function showDamageEffect(amount) {
         document.body.appendChild(damageTxt);
         setTimeout(() => damageTxt.remove(), 1000);
     }
-
-    // 4. 播放失敗音效 (建議加入)
-    // playSFX('fail_buzzer'); 
 }
 
 function failChallenge(msg) {
