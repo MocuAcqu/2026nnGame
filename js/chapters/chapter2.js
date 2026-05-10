@@ -48,6 +48,7 @@ let currentDialogueQueue = [];
 let dialogueCallback = null; 
 let isDialogueActive = false;
 let isReturningFromHatTrick = false;
+let dialogueLocked = false;
 
 /**
  * 啟動對話系統
@@ -67,15 +68,25 @@ function startDialogue(linesArray, callback = null) {
 
     overlay.classList.remove('hidden');
     overlay.style.display = 'flex';
+
     overlay.removeEventListener('click', advanceDialogue);
 
     isDialogueActive = true;
 
+    // 防止剛開啟瞬間點擊穿透
+    dialogueLocked = true;
+
     overlay.addEventListener('click', advanceDialogue);
+
     advanceDialogue();
+
+    setTimeout(() => {
+        dialogueLocked = false;
+    }, 200);
 }
 
 function advanceDialogue(event) {
+    if (dialogueLocked) return;
     playSFX('dialogue_click');
     // 如果有事件物件，阻止它繼續傳遞
     if (event) {
@@ -756,11 +767,11 @@ function bindMirrorEvents() {
         if (val >= 82 && val <= 88) {
             clue.style.opacity = 1;
             clue.style.transform = "scale(1.1)";
-            playSFX('pickup');
             
             // 第一次發現時跳提示
             if (clue.dataset.found !== "true") {
                 showToast("你看見了鏡子深處隱藏的文字！");
+                playSFX('pickup');
                 clue.dataset.found = "true";
             }
         } else {
@@ -1227,7 +1238,7 @@ function showRewardSkill(skillObj, callback) {
         e.stopPropagation(); // 阻止冒泡
         modal.classList.add('hidden');
         if (callback) {
-            setTimeout(callback, 100); 
+            setTimeout(callback, 300); 
         }
     };
 }
