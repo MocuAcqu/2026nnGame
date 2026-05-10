@@ -56,6 +56,9 @@ let isReturningFromHatTrick = false;
  */
 
 function startDialogue(linesArray, callback = null) {
+    isDialogueActive = false;
+    currentDialogueQueue = [];
+
     currentDialogueQueue = [...linesArray];
     dialogueCallback = callback;
 
@@ -63,20 +66,24 @@ function startDialogue(linesArray, callback = null) {
     const nameEl = document.getElementById('dialogue-name');
     const textEl = document.getElementById('dialogue-text');
 
+    overlay.removeEventListener('click', advanceDialogue);
+
     nameEl.innerText = "綿羊使者";
     overlay.classList.remove('hidden');
     overlay.style.display = 'flex';
 
-    isDialogueActive = true;
+    isDialogueActive = true; 
 
     const firstLine = currentDialogueQueue.shift();
     textEl.innerText = firstLine.replace(/^.*?:/, '');
 
+    console.log(`[對話] 開始，共 ${linesArray.length} 句，剩餘 ${currentDialogueQueue.length} 句`);
+
     setTimeout(() => {
         overlay.addEventListener('click', advanceDialogue);
+        console.log('[對話] 監聽器已掛載，等待點擊');
     }, 400);
 }
-
 function advanceDialogue(event) {
     playSFX('dialogue_click');
     // 如果有事件物件，阻止它繼續傳遞
@@ -85,8 +92,12 @@ function advanceDialogue(event) {
         event.preventDefault();
     }
 
-    // 安全檢查：如果對話已經被關閉，就不執行
-    if (!isDialogueActive) return;
+    console.log(`[對話] advanceDialogue 觸發，isDialogueActive=${isDialogueActive}，剩餘=${currentDialogueQueue.length}`);
+
+    if (!isDialogueActive) {
+        console.warn('[對話] 已非活躍狀態，忽略此次點擊');
+        return;
+    }
 
     const textEl = document.getElementById('dialogue-text');
     const overlay = document.getElementById('dialogue-overlay');
@@ -110,24 +121,24 @@ function advanceDialogue(event) {
             boxEl.classList.remove('glitch-shake');
             nameEl.innerText = "26歲的勇者";
             textEl.innerText = nextLine.replace("勇者:", "");
-            document.getElementById('sheep-messenger-img').src = "assets/images/hero_26.png"; 
+            document.getElementById('sheep-messenger-img').src = getCachedUrl("assets/images/hero_26.png");
         } else if (nextLine.startsWith("綿羊使者:")) {
             overlay.classList.remove('hero-mode');
             overlay.classList.remove('warning-mode');
             boxEl.classList.remove('glitch-shake');
             nameEl.innerText = "綿羊使者";
             textEl.innerText = nextLine.replace("綿羊使者:", "");
-            document.getElementById('sheep-messenger-img').src = "assets/images/sheep_messenger.png";
+            document.getElementById('sheep-messenger-img').src = getCachedUrl("assets/images/sheep_messenger.png");
         } else {
             overlay.classList.remove('warning-mode');
             overlay.classList.remove('hero-mode');
             boxEl.classList.remove('glitch-shake');
             nameEl.innerText = "綿羊使者";
             textEl.innerText = nextLine;
-            document.getElementById('sheep-messenger-img').src = "assets/images/sheep_messenger.png";
+            document.getElementById('sheep-messenger-img').src = getCachedUrl("assets/images/sheep_messenger.png");
         }
     } else {
-        // 對話結束清理
+        console.log('[對話] 對話結束，呼叫 closeDialogue');
         closeDialogue();
     }
 }
@@ -538,8 +549,8 @@ function enterDoor(isCorrect) {
 
         showRewardSkill(trueSkill, () => {
             startDialogue([
-                "不愧是你，你找到了正解。",
-                "不過現在，真正的試煉才要開始。"
+                "綿羊使者: 不愧是你，你找到了正解。",
+                "綿羊使者: 不過現在，真正的試煉才要開始。"
             ], () => {
                 const flash = document.getElementById('flash-overlay');
                 flash.classList.add('flash-anim');
@@ -551,7 +562,7 @@ function enterDoor(isCorrect) {
         });
     } else {
 
-        startDialogue(["好笨，你被虛假所迷惑，墜入了帽子戲法！"], () => {
+        startDialogue(["綿羊使者: 好笨，你被虛假所迷惑，墜入了帽子戲法！"], () => {
             AudioManager.stopBGM();
             AudioManager.playBGM(getCachedUrl('assets/audio/HatTrick.mp3'));
             startHatMinigame();
@@ -1084,22 +1095,6 @@ function failChallenge(msg) {
     currentGateLevel = 1;
     initLevel();
 }
-
-// 綁定鍵盤
-document.querySelectorAll('.num-key').forEach(btn => {
-    btn.onclick = () => {
-        if (currentInput.length < 4) {
-            currentInput += btn.innerText;
-            updateKeypadDisplay();
-            if (currentInput.length === 4) checkCode();
-        }
-    };
-});
-
-document.getElementById('btn-clear-keypad').onclick = () => {
-    currentInput = "";
-    updateKeypadDisplay();
-};
 
 function updateKeypadDisplay() {
     document.getElementById('keypad-display').innerText = currentInput.padEnd(4, '_');
