@@ -1,6 +1,5 @@
 import { SaveSystem } from '../saveSystem.js';
 import { AudioManager } from '../audioManager.js';
-import { getCachedUrl } from '../assetsConfig.js'; 
 
 // 核心變數
 let currentRoomIndex = 0; // 0:主, 1:撲克, 2:鏡子, 3:旋轉, 4:水晶
@@ -16,45 +15,33 @@ const oraclePhrases = [
     "「？」= 6", 
     "猜猜看鴨，還有多少未知等著你。", "均衡飲食很重要!", "你做得很好，真的~", "希望你可以一直身體健康、平安順遂。",
     "你是屬於你的世界的主角呢~", "記得也要把你自己放進被捕捉的畫面裡。", "這是一個很重要的日子呢。", "謹遵舍長老大的指令。",
-    "嗚嗚嗚，不小心又做得太晚了。", "偶爾瘋狂一下也不錯呢。", "前進吧，去尋找這個故事的結局吧。","呱"
+    "嗚嗚嗚，不小心又做得太晚了。", "偶爾瘋狂一下也不錯呢。", "前進吧，去尋找這個故事的結局吧。"
 ];
 
-const sfxPaths = {
-    pickup: 'assets/audio/pickup.mp3',
-    walk: 'assets/audio/walk.mp3',
-    land: 'assets/audio/land.mp3',
-    fail: 'assets/audio/fail_buzzer.mp3',  
-    success: 'assets/audio/correct_chime.mp3', 
-    tick: 'assets/audio/clock_tick.mp3', 
-    typing: 'assets/audio/typing.mp3', 
-    door_open: 'assets/audio/door_open.mp3',
-    dialogue_click: 'assets/audio/dialogue_click.mp3',
+const sfx = {
+    pickup: new Audio('assets/audio/pickup.mp3'),
+    walk: new Audio('assets/audio/walk.mp3'),
+    land: new Audio('assets/audio/land.mp3'),
+
+    fail: new Audio('assets/audio/fail_buzzer.mp3'),  
+    success: new Audio('assets/audio/correct_chime.mp3'), 
+    tick: new Audio('assets/audio/clock_tick.mp3'), 
+    typing: new Audio('assets/audio/typing.mp3'), 
+    door_open: new Audio('assets/audio/door_open.mp3'),
+    dialogue_click: new Audio('assets/audio/dialogue_click.mp3'),
 };
-const sfxInstances = {}; 
+
+Object.values(sfx).forEach(a => a.volume = 0.5);
 
 function playSFX(name) {
-    const originalPath = sfxPaths[name];
-    if (!originalPath) return;
-
-    try {
-        if (!sfxInstances[name]) {
-            sfxInstances[name] = new Audio(getCachedUrl(originalPath));
-            sfxInstances[name].volume = 0.4;
-        }
-        sfxInstances[name].currentTime = 0;
-        sfxInstances[name].play().catch(() => {});
-    } catch (err) {
-        console.warn(`[音效] 無法播放音效 ${name}:`, err);
-        // 就算音效出錯，也不要讓整個遊戲崩潰
-    }
+    sfx[name].currentTime = 0;
+    sfx[name].play().catch(() => {});
 }
 
 let currentDialogueQueue = [];
 let dialogueCallback = null; 
 let isDialogueActive = false;
 let isReturningFromHatTrick = false;
-let dialogueAbortController = null;
-let dialogueStartTime = 0;
 
 /**
  * 啟動對話系統
@@ -63,58 +50,28 @@ let dialogueStartTime = 0;
  */
 
 function startDialogue(linesArray, callback = null) {
-    if (dialogueAbortController) {
-        dialogueAbortController.abort();
-    }
-    dialogueAbortController = new AbortController();
-
-    isDialogueActive = false;
-    currentDialogueQueue = [...linesArray];
+    // 如果已經在對話中，先強制結束舊的 (或你可以選擇排隊，這裡採用強制更新)
+    currentDialogueQueue = [...linesArray]; // 淺拷貝陣列
     dialogueCallback = callback;
-
+    
     const overlay = document.getElementById('dialogue-overlay');
     const nameEl = document.getElementById('dialogue-name');
-    const textEl = document.getElementById('dialogue-text');
-
+    
     nameEl.innerText = "綿羊使者";
     overlay.classList.remove('hidden');
-    overlay.style.display = 'flex';
+    overlay.style.display = 'flex'; // 確保顯示
 
-    isDialogueActive = true;
-    dialogueStartTime = Date.now(); // ← 記錄對話開始時間
+    // 使用具名函式方便移除監聽，避免重複綁定
+    overlay.removeEventListener('click', advanceDialogue);
+    isDialogueActive = true; 
+    advanceDialogue(); 
 
-    const firstLine = currentDialogueQueue.shift();
-    const firstLineText = firstLine.replace(/^(勇者:|綿羊使者:|警告:)/, '');
-    if (firstLine.startsWith("勇者:")) {
-        nameEl.innerText = "26歲的勇者";
-        document.getElementById('sheep-messenger-img').src = getCachedUrl("assets/images/hero_26.png");
-    } else if (firstLine.startsWith("警告:")) {
-        nameEl.innerText = "幻術之門的警告";
-        overlay.classList.add('warning-mode');
-    } else {
-        nameEl.innerText = "綿羊使者";
-        document.getElementById('sheep-messenger-img').src = getCachedUrl("assets/images/sheep_messenger.png");
-    }
-    textEl.innerText = firstLineText;
-
-    console.log(`[對話] 開始，共 ${linesArray.length} 句，剩餘 ${currentDialogueQueue.length} 句`);
-
-    const signal = dialogueAbortController.signal;
-    // ← 延遲從 400ms 改為 600ms，給冒泡事件足夠時間消散
     setTimeout(() => {
-        if (signal.aborted) return;
-        overlay.addEventListener('click', advanceDialogue, { signal });
-        console.log('[對話] 監聽器已掛載，等待點擊');
-    }, 600);
+        overlay.addEventListener('click', advanceDialogue);
+    }, 100); 
 }
 
-
 function advanceDialogue(event) {
-    if (Date.now() - dialogueStartTime < 600) {
-        console.warn('[對話] 過早觸發，忽略（可能是事件冒泡）');
-        return;
-    }
-
     playSFX('dialogue_click');
     // 如果有事件物件，阻止它繼續傳遞
     if (event) {
@@ -122,32 +79,17 @@ function advanceDialogue(event) {
         event.preventDefault();
     }
 
-    console.log(`[對話] advanceDialogue 觸發，isDialogueActive=${isDialogueActive}，剩餘=${currentDialogueQueue.length}`);
-
-    if (!isDialogueActive) {
-        console.warn('[對話] 已非活躍狀態，忽略此次點擊');
-        return;
-    }
+    // 安全檢查：如果對話已經被關閉，就不執行
+    if (!isDialogueActive) return;
 
     const textEl = document.getElementById('dialogue-text');
     const overlay = document.getElementById('dialogue-overlay');
     const nameEl = document.getElementById('dialogue-name');
     const boxEl = document.getElementById('dialogue-box');
-    const imgEl = document.getElementById('sheep-messenger-img');
 
     if (currentDialogueQueue.length > 0) {
         const nextLine = currentDialogueQueue.shift();
         
-        const safeUpdateImage = (path) => {
-            try {
-                imgEl.src = getCachedUrl(path);
-            } catch (err) {
-                console.warn(`[對話] 圖片快取失敗，使用預設路徑 (${path}):`, err);
-                // 容錯：如果報錯，直接使用原本的字串路徑，確保瀏覽器能自己嘗試載入
-                imgEl.src = path; 
-            }
-        };
-
         // 解析標籤 (這部分維持你的邏輯)
         if (nextLine.startsWith("警告:")) {
             overlay.classList.remove('hero-mode');
@@ -162,47 +104,44 @@ function advanceDialogue(event) {
             boxEl.classList.remove('glitch-shake');
             nameEl.innerText = "26歲的勇者";
             textEl.innerText = nextLine.replace("勇者:", "");
-            safeUpdateImage("assets/images/hero_26.png"); 
+            document.getElementById('sheep-messenger-img').src = "assets/images/hero_26.png"; 
         } else if (nextLine.startsWith("綿羊使者:")) {
             overlay.classList.remove('hero-mode');
             overlay.classList.remove('warning-mode');
             boxEl.classList.remove('glitch-shake');
             nameEl.innerText = "綿羊使者";
             textEl.innerText = nextLine.replace("綿羊使者:", "");
-            safeUpdateImage("assets/images/sheep_messenger.png");
+            document.getElementById('sheep-messenger-img').src = "assets/images/sheep_messenger.png";
         } else {
             overlay.classList.remove('warning-mode');
             overlay.classList.remove('hero-mode');
             boxEl.classList.remove('glitch-shake');
             nameEl.innerText = "綿羊使者";
             textEl.innerText = nextLine;
-            safeUpdateImage("assets/images/sheep_messenger.png");
+            document.getElementById('sheep-messenger-img').src = "assets/images/sheep_messenger.png";
         }
     } else {
-        console.log('[對話] 對話結束，呼叫 closeDialogue');
+        // 對話結束清理
         closeDialogue();
     }
 }
 
 function closeDialogue() {
-    // ✅ 關閉時也 abort，確保監聽器被清理
-    if (dialogueAbortController) {
-        dialogueAbortController.abort();
-        dialogueAbortController = null;
-    }
-
     const overlay = document.getElementById('dialogue-overlay');
     overlay.classList.add('hidden');
     overlay.style.display = 'none';
     overlay.classList.remove('warning-mode');
-
+    
+    // 移除監聽器
+    overlay.removeEventListener('click', advanceDialogue);
+    
     isDialogueActive = false;
-    console.log('[對話] closeDialogue 執行，callback 存在:', !!dialogueCallback);
 
+    // 執行回調
     if (dialogueCallback) {
         const action = dialogueCallback;
         dialogueCallback = null;
-        setTimeout(action, 0); // ✅ 非同步執行，避免 call stack 嵌套
+        action();
     }
 }
 
@@ -239,8 +178,8 @@ export const Chapter2 = {
 
         const btnHatGame = document.getElementById('btn-start-hat-game');
         if (btnHatGame) btnHatGame.onclick = shuffleHats;
-
-        AudioManager.playBGM(getCachedUrl('assets/audio/Velvet Curtain Alchemy.mp3'));
+        
+        AudioManager.playBGM('assets/audio/Velvet Curtain Alchemy.mp3');
 
         const gameState = SaveSystem.load();
         
@@ -432,7 +371,7 @@ function setupPokerWall() {
                 playSFX('pickup');
                 showToast("發現碎片！");
             } else {
-                playSFX('typing');
+                // playSFX('card_flip');
             }
 
             // 2. 3秒後翻回去
@@ -593,8 +532,8 @@ function enterDoor(isCorrect) {
 
         showRewardSkill(trueSkill, () => {
             startDialogue([
-                "綿羊使者: 不愧是你，你找到了正解。",
-                "綿羊使者: 不過現在，真正的試煉才要開始。"
+                "不愧是你，你找到了正解。",
+                "不過現在，真正的試煉才要開始。"
             ], () => {
                 const flash = document.getElementById('flash-overlay');
                 flash.classList.add('flash-anim');
@@ -606,9 +545,11 @@ function enterDoor(isCorrect) {
         });
     } else {
 
-        startDialogue(["綿羊使者: 好笨，你被虛假所迷惑，墜入了帽子戲法！"], () => {
-            AudioManager.stopBGM();
-            AudioManager.playBGM(getCachedUrl('assets/audio/HatTrick.mp3'));
+        startDialogue(["好笨，你被虛假所迷惑，墜入了帽子戲法！"], () => {
+            if (AudioManager.currentTrack !== 'assets/audio/HatTrick.mp3') {
+                AudioManager.stopBGM();
+                AudioManager.playBGM('assets/audio/HatTrick.mp3');
+            }
             startHatMinigame();
         });
     }
@@ -627,7 +568,7 @@ async function startHatMinigame() {
     
     hatScreen.classList.remove('hidden');
     mainScene.classList.add('hidden'); // 隱藏原本的守衛場景
-    await resetHats(); // 初始化帽子位置
+    resetHats(); // 初始化帽子位置
 
     // 等動畫結束 (0.6s) 移除類別
     await new Promise(r => setTimeout(r, 1500));
@@ -751,18 +692,16 @@ async function handleHatClick(idx) {
         await new Promise(r => setTimeout(r, 400));
 
         hatScreen.classList.add('hidden');
+        mainScene.classList.remove('hidden');
         isReturningFromHatTrick = true;
         
         // 切換音樂回主旋律
         AudioManager.stopBGM();
+        AudioManager.playBGM('assets/audio/Velvet Curtain Alchemy.mp3');
 
         await new Promise(r => setTimeout(r, 400));
         flash.classList.remove('flash-anim');
 
-        AudioManager.playBGM(getCachedUrl('assets/audio/Velvet Curtain Alchemy.mp3'));
-
-        await new Promise(r => setTimeout(r, 800));
-        mainScene.classList.remove('hidden');
         showRewardSkill(newSkill, () => {
             startDialogue([
                 "綿羊使者: 不錯嘛，竟然能從帽子戲法中帶回這份力量。",
@@ -817,7 +756,6 @@ function bindMirrorEvents() {
             // 第一次發現時跳提示
             if (clue.dataset.found !== "true") {
                 showToast("你看見了鏡子深處隱藏的文字！");
-                playSFX('pickup');
                 clue.dataset.found = "true";
             }
         } else {
@@ -971,7 +909,7 @@ function startIllusionGates() {
     document.getElementById('illusion-gates-screen').classList.remove('hidden');
 
     AudioManager.stopBGM();
-    AudioManager.playBGM(getCachedUrl('assets/audio/Hull-Slap Echoes.mp3'));
+    AudioManager.playBGM('assets/audio/Hull-Slap Echoes.mp3');
 
     setTimeout(() => {
         startDialogue([
@@ -1125,6 +1063,9 @@ function showDamageEffect(amount) {
         document.body.appendChild(damageTxt);
         setTimeout(() => damageTxt.remove(), 1000);
     }
+
+    // 4. 播放失敗音效 (建議加入)
+    // playSFX('fail_buzzer'); 
 }
 
 function failChallenge(msg) {
@@ -1139,6 +1080,22 @@ function failChallenge(msg) {
     currentGateLevel = 1;
     initLevel();
 }
+
+// 綁定鍵盤
+document.querySelectorAll('.num-key').forEach(btn => {
+    btn.onclick = () => {
+        if (currentInput.length < 4) {
+            currentInput += btn.innerText;
+            updateKeypadDisplay();
+            if (currentInput.length === 4) checkCode();
+        }
+    };
+});
+
+document.getElementById('btn-clear-keypad').onclick = () => {
+    currentInput = "";
+    updateKeypadDisplay();
+};
 
 function updateKeypadDisplay() {
     document.getElementById('keypad-display').innerText = currentInput.padEnd(4, '_');
