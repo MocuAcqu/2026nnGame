@@ -1334,7 +1334,9 @@ function bindInput() {
         if (e.code === 'KeyX') keys.KeyX = false;
     });
 
-    document.getElementById('dialogue-overlay').addEventListener('click', advanceDialogue);
+    const dialogueOverlay = document.getElementById('dialogue-overlay');
+    dialogueOverlay._ch1AdvanceHandler = advanceDialogue; 
+    dialogueOverlay.addEventListener('click', advanceDialogue);
 
     document.getElementById('btn-sheep-help').addEventListener('click', () => {
         if (!isDialogueActive) {

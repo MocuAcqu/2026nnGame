@@ -2199,3 +2199,41 @@ body {
 }
 
 .loading-detail { font-size: 0.8rem; color: #888; }
+
+.easter-egg-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(255, 105, 180, 0.2); /* 淡淡的粉紅色 */
+    backdrop-filter: blur(15px); /* 背景極致模糊 */
+    z-index: 99999; /* 必須高於一切 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.easter-egg-content {
+    text-align: center;
+    color: white;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+    animation: bouncePop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    padding: 3rem;
+}
+
+.easter-egg-content h1 {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    letter-spacing: 10px;
+}
+
+.easter-egg-content p {
+    font-size: 1.2rem;
+    opacity: 0.8;
+}
+
+@keyframes bouncePop {
+    from { transform: scale(0); }
+    to { transform: scale(1); }
+}

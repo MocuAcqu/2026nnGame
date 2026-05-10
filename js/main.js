@@ -259,3 +259,50 @@ function loadGame() {
 }
 
 window.onload = init;
+
+// --- 彩蛋變數 ---
+const SECRET_WORD = "tina";
+let inputBuffer = "";
+
+// --- 監聽全域按鍵 ---
+window.addEventListener('keydown', (e) => {
+    // 只紀錄英文字母，並轉為小寫
+    if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
+        inputBuffer += e.key.toLowerCase();
+        
+        // 只保留最後與秘密單字等長的字數 (避免緩衝區無限增長)
+        if (inputBuffer.length > SECRET_WORD.length) {
+            inputBuffer = inputBuffer.slice(-SECRET_WORD.length);
+        }
+
+        // 檢查是否達成彩蛋條件
+        if (inputBuffer === SECRET_WORD) {
+            triggerEasterEgg();
+            inputBuffer = ""; // 觸發後清空，防止連續觸發
+        }
+    }
+});
+
+// --- 彩蛋觸發函式 ---
+function triggerEasterEgg() {
+    showSecretOverlay("嘿嘿，生日快樂呀!<br> 希望我們不會是畢業之後就不再聯絡的關係呢~ <br> 也許不捨得你成為27歲的人不是你呢。");
+}
+
+function showSecretOverlay(message) {
+    const overlay = document.createElement('div');
+    overlay.className = 'easter-egg-overlay';
+    overlay.innerHTML = `
+        <div class="easter-egg-content">
+            <h1>${message}</h1>
+            <p>你找到了一個隱藏在深處的小彩蛋...</p>
+            <p>[點擊任意處返回]</p>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // 點擊後消失
+    overlay.onclick = () => {
+        overlay.style.opacity = 0;
+        setTimeout(() => overlay.remove(), 500);
+    };
+}

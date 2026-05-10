@@ -110,6 +110,7 @@ function startDialogue(linesArray, callback = null) {
 
 
 function advanceDialogue(event) {
+    console.trace('[對話] advanceDialogue 呼叫來源');
     if (Date.now() - dialogueStartTime < 600) {
         console.warn('[對話] 過早觸發，忽略（可能是事件冒泡）');
         return;
@@ -134,7 +135,6 @@ function advanceDialogue(event) {
     const nameEl = document.getElementById('dialogue-name');
     const boxEl = document.getElementById('dialogue-box');
     const imgEl = document.getElementById('sheep-messenger-img');
-    console.log('解析標籤前-1');
 
     if (currentDialogueQueue.length > 0) {
         const nextLine = currentDialogueQueue.shift();
@@ -148,8 +148,6 @@ function advanceDialogue(event) {
                 imgEl.src = path; 
             }
         };
-
-        console.log('解析標籤前-2');
 
         // 解析標籤 (這部分維持你的邏輯)
         if (nextLine.startsWith("警告:")) {
@@ -235,6 +233,12 @@ const targetBox = { x: 150, y: 120, width: 60, height: 60 };
 
 export const Chapter2 = {
     init: () => {
+        const overlay = document.getElementById('dialogue-overlay');
+        if (overlay._ch1AdvanceHandler) {
+            overlay.removeEventListener('click', overlay._ch1AdvanceHandler);
+            overlay._ch1AdvanceHandler = null;
+            console.log('[Chapter2] 已清除 chapter1 的 dialogue 監聽器');
+        }
         document.getElementById('staircase-screen').classList.add('hidden');
         document.getElementById('chapter2-screen').classList.remove('hidden');
 
