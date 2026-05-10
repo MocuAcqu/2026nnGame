@@ -114,7 +114,7 @@ function playSFX(name) {
     if (!sfxInstances[name]) {
         const cachedUrl = getCachedUrl(originalPath); // ★ 拿取記憶體裡的 blob 網址
         sfxInstances[name] = new Audio(cachedUrl);
-        sfxInstances[name].volume = 0.5; // 在這裡統一設定音量
+        sfxInstances[name].volume = 0.4; // 在這裡統一設定音量
     }
 
     // 播放音效

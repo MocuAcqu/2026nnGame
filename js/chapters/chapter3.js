@@ -29,7 +29,7 @@ function playSFX(name) {
 
     if (!sfxInstances[name]) {
         sfxInstances[name] = new Audio(getCachedUrl(originalPath));
-        sfxInstances[name].volume = 0.5;
+        sfxInstances[name].volume = 0.4;
     }
     sfxInstances[name].currentTime = 0;
     sfxInstances[name].play().catch(() => {});
